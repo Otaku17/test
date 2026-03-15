@@ -31,29 +31,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Install NSIS
         run: choco install nsis -y
-
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
       - name: Install frontend deps
         working-directory: frontend
         run: npm install
-
       - name: Build Windows + NSIS installer
         run: wails build -platform windows/amd64 -nsis
-
+      - name: List build output
+        run: Get-ChildItem build/bin/
+        shell: pwsh
       - name: Rename installer
+        shell: pwsh
         run: |
           cd build/bin
-          $installer = Get-ChildItem -Filter "*-amd64-installer.exe" | Select-Object -First 1
+          $installer = Get-ChildItem -Filter "*installer*.exe" | Select-Object -First 1
           if ($installer) {
             Rename-Item $installer.FullName "CraftingEditor-Setup.exe"
+            Write-Host "Renamed to CraftingEditor-Setup.exe"
+          } else {
+            $any = Get-ChildItem -Filter "*.exe" | Select-Object -First 1
+            if ($any) {
+              Rename-Item $any.FullName "CraftingEditor-Setup.exe"
+              Write-Host "Renamed $($any.Name) to CraftingEditor-Setup.exe"
+            } else {
+              Write-Host "No .exe found!"
+              exit 1
+            }
           }
-        shell: pwsh
-
       - uses: actions/upload-artifact@v4
         with:
           name: windows-build
@@ -70,24 +77,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
       - name: Install frontend deps
         working-directory: frontend
         run: npm install
-
       - name: Build macOS Universal
         run: wails build -platform darwin/universal
-
-      - name: Find .app name
-        id: appname
-        run: |
-          APP=$(find build/bin -maxdepth 1 -name "*.app" -type d | head -1 | xargs basename)
-          echo "APP=$APP" >> $GITHUB_OUTPUT
-          echo "Found: $APP"
-
       - name: Create DMG
         run: |
           APP=$(find build/bin -maxdepth 1 -name "*.app" -type d | head -1)
@@ -98,10 +94,8 @@ jobs:
           hdiutil create \
             -volname "Crafting Editor" \
             -srcfolder dmg-staging \
-            -ov \
-            -format UDZO \
+            -ov -format UDZO \
             build/bin/CraftingEditor.dmg
-
       - uses: actions/upload-artifact@v4
         with:
           name: macos-build
@@ -118,71 +112,54 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Install Linux deps
         run: |
           sudo apt-get update -y
           sudo apt-get install -y \
-            libgtk-3-dev \
-            libwebkit2gtk-4.0-dev \
-            build-essential \
-            pkg-config \
-            libglib2.0-dev \
-            fuse \
-            libfuse2
-
+            libgtk-3-dev libwebkit2gtk-4.0-dev \
+            build-essential pkg-config libglib2.0-dev \
+            fuse libfuse2
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
       - name: Install frontend deps
         working-directory: frontend
         run: npm install
-
       - name: Build Linux
         run: wails build -platform linux/amd64
-
       - name: Download appimagetool
         run: |
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage \
             -O /usr/local/bin/appimagetool
           chmod +x /usr/local/bin/appimagetool
-
       - name: Find binary name
         id: binname
         run: |
-          BIN=$(ls build/bin/ | head -1)
+          BIN=$(find build/bin -maxdepth 1 -type f | head -1 | xargs basename)
           echo "BIN=$BIN" >> $GITHUB_OUTPUT
-
       - name: Create AppDir structure
         run: |
-          mkdir -p AppDir/usr/bin
-          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps
           cp build/bin/${{ steps.binname.outputs.BIN }} AppDir/usr/bin/CraftingEditor
           cp build/appicon.png AppDir/usr/share/icons/hicolor/256x256/apps/crafting-editor.png
           cp build/appicon.png AppDir/crafting-editor.png
-
-          cat > AppDir/crafting-editor.desktop << 'DESKTOP'
+          cat > AppDir/crafting-editor.desktop << 'EOF'
           [Desktop Entry]
           Name=Crafting Editor
           Exec=CraftingEditor
           Icon=crafting-editor
           Type=Application
           Categories=Utility;Development;
-          DESKTOP
-
-          cat > AppDir/AppRun << 'APPRUN'
+          EOF
+          cat > AppDir/AppRun << 'EOF'
           #!/bin/bash
           APPDIR="$(dirname "$(readlink -f "$0")")"
           exec "$APPDIR/usr/bin/CraftingEditor" "$@"
-          APPRUN
+          EOF
           chmod +x AppDir/AppRun
-
       - name: Build AppImage
-        run: |
-          ARCH=x86_64 appimagetool AppDir build/bin/CraftingEditor-x86_64.AppImage
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
-
+        run: ARCH=x86_64 appimagetool AppDir build/bin/CraftingEditor-x86_64.AppImage
       - uses: actions/upload-artifact@v4
         with:
           name: linux-build
@@ -197,7 +174,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts/
-
       - name: Extract version
         id: version
         run: |
@@ -206,7 +182,6 @@ jobs:
           else
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
-
       - name: Update version.json
         run: |
           echo "{\"version\": \"${{ steps.version.outputs.VERSION }}\"}" > docs/version.json
@@ -215,10 +190,8 @@ jobs:
           git add docs/version.json
           git diff --cached --quiet || git commit -m "chore: bump version to ${{ steps.version.outputs.VERSION }}"
           git push origin HEAD:main || true
-
       - name: List artifacts
         run: find artifacts/ -type f
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -233,7 +206,6 @@ jobs:
             | 🍎 macOS | `CraftingEditor.dmg` | Universal (Intel + Apple Silicon) |
             | 🐧 Linux | `CraftingEditor-x86_64.AppImage` | No install needed |
 
-            ### First launch warnings
             > **Windows:** click *More info* → *Run anyway*
             > **macOS:** `xattr -cr /Applications/CraftingEditor.app` or right-click → Open
             > **Linux:** `chmod +x CraftingEditor-x86_64.AppImage && ./CraftingEditor-x86_64.AppImage`
