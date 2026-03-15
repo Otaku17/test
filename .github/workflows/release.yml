@@ -47,19 +47,15 @@ jobs:
         shell: pwsh
         run: |
           cd build/bin
+          Get-ChildItem
           $installer = Get-ChildItem -Filter "*installer*.exe" | Select-Object -First 1
           if ($installer) {
             Rename-Item $installer.FullName "CraftingEditor-Setup.exe"
-            Write-Host "Renamed to CraftingEditor-Setup.exe"
+            Write-Host "Renamed: $($installer.Name) -> CraftingEditor-Setup.exe"
           } else {
-            $any = Get-ChildItem -Filter "*.exe" | Select-Object -First 1
-            if ($any) {
-              Rename-Item $any.FullName "CraftingEditor-Setup.exe"
-              Write-Host "Renamed $($any.Name) to CraftingEditor-Setup.exe"
-            } else {
-              Write-Host "No .exe found!"
-              exit 1
-            }
+            Write-Host "No installer found, listing files:"
+            Get-ChildItem
+            exit 1
           }
       - uses: actions/upload-artifact@v4
         with:
