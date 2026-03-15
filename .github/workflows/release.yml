@@ -20,7 +20,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # ── Windows — NSIS Installer ──────────────────────────────────────────────────
+  # ── Windows — Inno Setup Installer ──────────────────────────────────────────────────
   build-windows:
     runs-on: windows-latest
     steps:
@@ -31,36 +31,59 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install NSIS
-        run: choco install nsis -y
+
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
       - name: Install frontend deps
         working-directory: frontend
         run: npm install
-      - name: Build Windows + NSIS installer
-        run: wails build -platform windows/amd64 -nsis
-      - name: List build output
-        run: Get-ChildItem build/bin/
-        shell: pwsh
-      - name: Rename installer
+
+      - name: Build Windows
+        run: wails build -platform windows/amd64
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Create Inno Setup script
         shell: pwsh
         run: |
-          cd build/bin
-          Get-ChildItem
-          $installer = Get-ChildItem -Filter "*installer*.exe" | Select-Object -First 1
-          if ($installer) {
-            Rename-Item $installer.FullName "CraftingEditor-Setup.exe"
-            Write-Host "Renamed: $($installer.Name) -> CraftingEditor-Setup.exe"
-          } else {
-            Write-Host "No installer found, listing files:"
-            Get-ChildItem
-            exit 1
-          }
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          if (-not $version) { $version = "0.1.0" }
+          @"
+          [Setup]
+          AppName=Crafting Editor
+          AppVersion=$version
+          AppPublisher=Otaku17
+          DefaultDirName={autopf}\CraftingEditor
+          DefaultGroupName=Crafting Editor
+          OutputDir=build\installer
+          OutputBaseFilename=CraftingEditor-Setup
+          Compression=lzma
+          SolidCompression=yes
+          ArchitecturesInstallIn64BitMode=x64
+
+          [Files]
+          Source: "build\bin\CraftingEditor.exe"; DestDir: "{app}"; Flags: ignoreversion
+
+          [Icons]
+          Name: "{group}\Crafting Editor"; Filename: "{app}\CraftingEditor.exe"
+          Name: "{commondesktop}\Crafting Editor"; Filename: "{app}\CraftingEditor.exe"
+
+          [Run]
+          Filename: "{app}\CraftingEditor.exe"; Description: "Launch Crafting Editor"; Flags: nowait postinstall skipifsilent
+          "@ | Out-File -FilePath setup.iss -Encoding UTF8
+
+      - name: Build installer
+        run: |
+          mkdir -p build\installer
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
+        shell: pwsh
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: build/bin/CraftingEditor-Setup.exe
+          path: build/installer/CraftingEditor-Setup.exe
 
   # ── macOS — DMG ───────────────────────────────────────────────────────────────
   build-macos:
@@ -192,7 +215,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
-          name: "Crafting Editor ${{ steps.version.outputs.VERSION }}"
+          name: 'Crafting Editor ${{ steps.version.outputs.VERSION }}'
           body: |
             ## Crafting Editor ${{ steps.version.outputs.VERSION }}
 
