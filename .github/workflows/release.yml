@@ -20,7 +20,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # ── Windows ──────────────────────────────────────────────────────────────────
+  # ── Windows — NSIS Installer ──────────────────────────────────────────────────
   build-windows:
     runs-on: windows-latest
     steps:
@@ -31,19 +31,35 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install NSIS
+        run: choco install nsis -y
+
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
       - name: Install frontend deps
         working-directory: frontend
         run: npm install
-      - name: Build Windows
-        run: wails build -platform windows/amd64
+
+      - name: Build Windows + NSIS installer
+        run: wails build -platform windows/amd64 -nsis
+
+      - name: Rename installer
+        run: |
+          cd build/bin
+          $installer = Get-ChildItem -Filter "*-amd64-installer.exe" | Select-Object -First 1
+          if ($installer) {
+            Rename-Item $installer.FullName "CraftingEditor-Setup.exe"
+          }
+        shell: pwsh
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: build/bin/*.exe
+          path: build/bin/CraftingEditor-Setup.exe
 
-  # ── macOS ─────────────────────────────────────────────────────────────────────
+  # ── macOS — DMG ───────────────────────────────────────────────────────────────
   build-macos:
     runs-on: macos-latest
     steps:
@@ -54,25 +70,54 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
       - name: Install frontend deps
         working-directory: frontend
         run: npm install
-      - name: Build macOS
+
+      - name: Build macOS Universal
         run: wails build -platform darwin/universal
-      - name: Zip .app (quel que soit le nom généré)
+
+      - name: Find .app name
+        id: appname
         run: |
-          cd build/bin
-          APP=$(ls -d *.app | head -1)
-          echo "Found app: $APP"
-          zip -r CraftingEditor-mac.zip "$APP"
+          APP=$(ls build/bin/*.app | head -1 | xargs basename)
+          echo "APP=$APP" >> $GITHUB_OUTPUT
+          echo "Found: $APP"
+
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "Crafting Editor" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "${{ steps.appname.outputs.APP }}" 175 190 \
+            --hide-extension "${{ steps.appname.outputs.APP }}" \
+            --app-drop-link 425 190 \
+            "build/bin/CraftingEditor.dmg" \
+            "build/bin/${{ steps.appname.outputs.APP }}" \
+          || true
+          # Fallback si create-dmg échoue (app non signée)
+          if [ ! -f "build/bin/CraftingEditor.dmg" ]; then
+            hdiutil create -volname "Crafting Editor" \
+              -srcfolder "build/bin/${{ steps.appname.outputs.APP }}" \
+              -ov -format UDZO \
+              "build/bin/CraftingEditor.dmg"
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: build/bin/CraftingEditor-mac.zip
+          path: build/bin/CraftingEditor.dmg
 
-  # ── Linux ─────────────────────────────────────────────────────────────────────
+  # ── Linux — AppImage ──────────────────────────────────────────────────────────
   build-linux:
     runs-on: ubuntu-22.04
     steps:
@@ -83,6 +128,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
       - name: Install Linux deps
         run: |
           sudo apt-get update -y
@@ -91,20 +137,66 @@ jobs:
             libwebkit2gtk-4.0-dev \
             build-essential \
             pkg-config \
-            libglib2.0-dev
+            libglib2.0-dev \
+            fuse \
+            libfuse2
+
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
       - name: Install frontend deps
         working-directory: frontend
         run: npm install
+
       - name: Build Linux
         run: wails build -platform linux/amd64
-      - name: Rename binary
-        run: mv build/bin/$(ls build/bin/) build/bin/CraftingEditor-linux || true
+
+      - name: Download appimagetool
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage \
+            -O /usr/local/bin/appimagetool
+          chmod +x /usr/local/bin/appimagetool
+
+      - name: Find binary name
+        id: binname
+        run: |
+          BIN=$(ls build/bin/ | head -1)
+          echo "BIN=$BIN" >> $GITHUB_OUTPUT
+
+      - name: Create AppDir structure
+        run: |
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          cp build/bin/${{ steps.binname.outputs.BIN }} AppDir/usr/bin/CraftingEditor
+          cp build/appicon.png AppDir/usr/share/icons/hicolor/256x256/apps/crafting-editor.png
+          cp build/appicon.png AppDir/crafting-editor.png
+
+          cat > AppDir/crafting-editor.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Name=Crafting Editor
+          Exec=CraftingEditor
+          Icon=crafting-editor
+          Type=Application
+          Categories=Utility;Development;
+          DESKTOP
+
+          cat > AppDir/AppRun << 'APPRUN'
+          #!/bin/bash
+          APPDIR="$(dirname "$(readlink -f "$0")")"
+          exec "$APPDIR/usr/bin/CraftingEditor" "$@"
+          APPRUN
+          chmod +x AppDir/AppRun
+
+      - name: Build AppImage
+        run: |
+          ARCH=x86_64 appimagetool AppDir build/bin/CraftingEditor-x86_64.AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+
       - uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: build/bin/CraftingEditor-linux
+          path: build/bin/CraftingEditor-x86_64.AppImage
 
   # ── GitHub Release ────────────────────────────────────────────────────────────
   release:
@@ -115,6 +207,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts/
+
       - name: Extract version
         id: version
         run: |
@@ -123,6 +216,7 @@ jobs:
           else
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
+
       - name: Update version.json
         run: |
           echo "{\"version\": \"${{ steps.version.outputs.VERSION }}\"}" > docs/version.json
@@ -131,8 +225,10 @@ jobs:
           git add docs/version.json
           git diff --cached --quiet || git commit -m "chore: bump version to ${{ steps.version.outputs.VERSION }}"
           git push origin HEAD:main || true
+
       - name: List artifacts
         run: find artifacts/ -type f
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -141,17 +237,19 @@ jobs:
           body: |
             ## Crafting Editor ${{ steps.version.outputs.VERSION }}
 
-            | Platform | Download |
-            |---|---|
-            | 🪟 Windows | `.exe` |
-            | 🍎 macOS | `CraftingEditor-mac.zip` |
-            | 🐧 Linux | `CraftingEditor-linux` |
+            | Platform | Download | Notes |
+            |---|---|---|
+            | 🪟 Windows | `CraftingEditor-Setup.exe` | Installer — adds to Start Menu |
+            | 🍎 macOS | `CraftingEditor.dmg` | Universal (Intel + Apple Silicon) |
+            | 🐧 Linux | `CraftingEditor-x86_64.AppImage` | No install needed |
 
+            ### First launch warnings
             > **Windows:** click *More info* → *Run anyway*
             > **macOS:** `xattr -cr /Applications/CraftingEditor.app` or right-click → Open
+            > **Linux:** `chmod +x CraftingEditor-x86_64.AppImage && ./CraftingEditor-x86_64.AppImage`
           files: |
-            artifacts/windows-build/*.exe
-            artifacts/macos-build/CraftingEditor-mac.zip
-            artifacts/linux-build/CraftingEditor-linux
+            artifacts/windows-build/CraftingEditor-Setup.exe
+            artifacts/macos-build/CraftingEditor.dmg
+            artifacts/linux-build/CraftingEditor-x86_64.AppImage
           draft: false
           prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') }}
