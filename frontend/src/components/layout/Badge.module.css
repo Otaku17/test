@@ -1,0 +1,18 @@
+.badge {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: var(--radius-xs); border: 1px solid transparent;
+  white-space: nowrap; flex-shrink: 0;
+}
+.all     { background:var(--accent-subtle);  color:var(--accent);  border-color:var(--accent-muted); }
+.ball    { background:var(--cyan-subtle);    color:var(--cyan);    border-color:var(--cyan-muted); }
+.medical { background:var(--red-subtle);     color:var(--red);     border-color:var(--red-muted); }
+.tm      { background:var(--yellow-subtle);  color:var(--yellow);  border-color:var(--yellow-muted); }
+.other   { background:var(--purple-subtle);  color:var(--purple);  border-color:var(--purple-muted); }
+.accent  { background:var(--accent-subtle);  color:var(--accent);  border-color:var(--accent-muted); }
+.green   { background:var(--green-subtle);   color:var(--green);   border-color:var(--green-muted); }
+.red     { background:var(--red-subtle);     color:var(--red);     border-color:var(--red-muted); }
+.yellow  { background:var(--yellow-subtle);  color:var(--yellow);  border-color:var(--yellow-muted); }
+.cyan    { background:var(--cyan-subtle);    color:var(--cyan);    border-color:var(--cyan-muted); }
+.purple  { background:var(--purple-subtle);  color:var(--purple);  border-color:var(--purple-muted); }

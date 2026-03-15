@@ -1,0 +1,162 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'   # Déclenché sur : git tag v0.2.0 && git push --tags
+
+permissions:
+  contents: write  # Nécessaire pour créer des GitHub Releases
+
+jobs:
+  # ── Windows ──────────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm install
+
+      - name: Build Windows
+        run: wails build -platform windows/amd64 -nsis
+        # -nsis génère aussi un installeur .exe en plus du binaire
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: build/bin/
+
+  # ── macOS ─────────────────────────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm install
+
+      - name: Build macOS (Universal)
+        run: wails build -platform darwin/universal
+
+      - name: Package .app into .zip
+        run: |
+          cd build/bin
+          zip -r CraftingEditor-mac.zip CraftingEditor.app
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: build/bin/CraftingEditor-mac.zip
+
+  # ── Linux ─────────────────────────────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm install
+
+      - name: Build Linux
+        run: wails build -platform linux/amd64
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: build/bin/
+
+  # ── GitHub Release ────────────────────────────────────────────────────────────
+  release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Extract tag version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Update version.json for landing page
+        run: |
+          echo "{\"version\": \"${{ steps.version.outputs.VERSION }}\"}" > docs/version.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Crafting Editor ${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## Crafting Editor ${{ steps.version.outputs.VERSION }}
+
+            ### Downloads
+            | Platform | File |
+            |---|---|
+            | Windows | `CraftingEditor-${{ steps.version.outputs.VERSION }}-amd64-installer.exe` |
+            | macOS | `CraftingEditor-mac.zip` |
+            | Linux | `CraftingEditor` |
+
+            ### Installation
+            - **Windows** : Lance l'installeur `.exe`
+            - **macOS** : Dézippe et glisse dans Applications
+            - **Linux** : `chmod +x CraftingEditor && ./CraftingEditor`
+          files: |
+            artifacts/windows-build/*
+            artifacts/macos-build/*
+            artifacts/linux-build/*
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') }}

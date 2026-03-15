@@ -1,0 +1,50 @@
+.root { display: flex; flex-direction: column; gap: 10px; }
+.typeRow { display: flex; align-items: center; gap: 10px; }
+.typeLabel { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+
+/* Simple condition node */
+.simpleNode {
+  background: var(--bg-overlay); border: 1px solid var(--border-default);
+  border-radius: var(--radius-md); padding: 12px 14px;
+}
+.condRow { display: flex; align-items: center; gap: 8px; }
+.condTag {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: var(--radius-xs); border: 1px solid transparent;
+  text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; flex-shrink: 0;
+}
+.ct_manual   { background:var(--accent-subtle); color:var(--accent);  border-color:var(--accent-muted); }
+.ct_switch   { background:var(--cyan-subtle);   color:var(--cyan);    border-color:var(--cyan-muted); }
+.ct_variable { background:var(--yellow-subtle); color:var(--yellow);  border-color:var(--yellow-muted); }
+.ct_recipe   { background:var(--green-subtle);  color:var(--green);   border-color:var(--green-muted); }
+.ct_operator { background:var(--purple-subtle); color:var(--purple);  border-color:var(--purple-muted); }
+
+.condLabel { font-size: 11px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
+
+/* Operator node */
+.opNode {
+  background: var(--bg-raised); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md); padding: 14px 16px;
+}
+.opHead {
+  display: flex; align-items: center; gap: 8px;
+  padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border-default);
+}
+.opAddBtns {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.opChildren {
+  border-left: 2px solid var(--border-strong); padding-left: 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.childRow { display: flex; align-items: center; gap: 8px; }
+
+.removeBtn {
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm); background: transparent; color: var(--text-muted);
+  border: 1px solid transparent; cursor: pointer; transition: all var(--t-base); flex-shrink: 0;
+}
+.removeBtn:hover { background: var(--red-subtle); color: var(--red); border-color: var(--red-muted); }
+
+.empty { font-size: 12px; color: var(--text-muted); padding: 4px 0; font-style: italic; }

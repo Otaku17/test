@@ -1,0 +1,173 @@
+/* ── Grid ───────────────────────────────────────────────────── */
+.root {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+/* ── Slot base ───────────────────────────────────────────────── */
+.slot {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--t-fast);
+  position: relative;
+}
+
+/* ── Slot vide ───────────────────────────────────────────────── */
+.slotEmpty {
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 80px;
+  cursor: pointer;
+  border-style: dashed;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+}
+.slotEmpty:hover {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+.addLabel {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ── Slot invalide ───────────────────────────────────────────── */
+.slotInvalid {
+  border-color: var(--red-muted) !important;
+  background: var(--red-subtle);
+}
+.slotInvalid .slotHeader {
+  background: var(--red-subtle);
+}
+/*.slotFilled { }*/
+.slotFilled:hover {
+  border-color: var(--border-strong);
+}
+
+/* Header : numéro + icône item côte à côte */
+.slotHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 7px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--bg-surface);
+  position: relative;
+}
+.slotNum {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+.itemIcon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.itemIconPlaceholder {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+.itemName {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Corps : select + qty/remove */
+.slotBody {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-elevated);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.itemSelect {
+  width: 100%;
+}
+
+.qtyRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.qtyLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  padding-right: 2px;
+}
+.qtyInput {
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  transition: border-color var(--t-base);
+  min-width: 0;
+  width: 100%;
+}
+.qtyInput:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* Bouton supprimer — coin haut-droit absolu */
+.removeBtn {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  background: var(--bg-overlay);
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--t-fast),
+    background var(--t-fast),
+    color var(--t-fast),
+    border-color var(--t-fast);
+}
+.slot:hover .removeBtn {
+  opacity: 1;
+}
+.removeBtn:hover {
+  background: var(--red-subtle);
+  color: var(--red);
+  border-color: var(--red-muted);
+}

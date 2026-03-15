@@ -1,0 +1,164 @@
+/* ── Scroll area */
+.editor {
+  flex: 1; overflow-y: auto; padding: 28px 32px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+/* ── Empty states */
+.empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; text-align: center; padding: 60px 40px;
+}
+.noProjectSquare {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: var(--accent);
+  box-shadow: 0 0 24px var(--accent-glow);
+}
+
+.dropZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 48px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  transition: border-color var(--t-base), background var(--t-base);
+  text-align: center;
+  max-width: 340px;
+}
+.dropZone:hover {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+.dropZone:hover .dropIcon { color: var(--accent); }
+
+.dropIcon {
+  color: var(--text-muted);
+  transition: color var(--t-base);
+}
+.dropTitle {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.dropDesc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin: 0;
+}
+.dropDesc code {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--accent-subtle);
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+}
+.dropShortcut {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.emptyIcon { color: var(--text-muted); opacity: 0.4; margin-bottom: 4px; }
+.empty h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-secondary); }
+.empty p  { font-size: 13px; color: var(--text-muted); line-height: 1.7; max-width: 300px; }
+.empty p code {
+  color: var(--accent); font-family: var(--font-mono); font-size: 12px;
+  background: var(--accent-subtle); padding: 1px 5px; border-radius: var(--radius-xs);
+}
+
+/* ── Recipe header */
+.header {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding-bottom: 22px; border-bottom: 1px solid var(--border-subtle);
+}
+.headerLeft { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.recipeIcon {
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+.recipeTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.recipeKey {
+  font-family: var(--font-ui); font-size: 17px; font-weight: 700;
+  color: var(--text-primary); letter-spacing: -0.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dbSymbolBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px 2px 6px;
+  cursor: pointer;
+  width: fit-content;
+  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.dbSymbolBadge:hover {
+  color: var(--accent);
+  border-color: var(--accent-muted);
+  background: var(--accent-subtle);
+}
+.dirtyBadge {
+  font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+  padding: 2px 7px; border-radius: var(--radius-xs);
+  background: var(--yellow-subtle); color: var(--yellow); border: 1px solid var(--yellow-muted);
+  white-space: nowrap; flex-shrink: 0;
+}
+.headerActions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ── Fields row — ergonomics: clear labels, proportional grid */
+.fieldRow {
+  display: grid; grid-template-columns: 1fr 120px 140px; gap: 14px;
+}
+
+/* ── Section card */
+.section {
+  background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg); padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.sectionHead {
+  display: flex; align-items: center; gap: 8px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.sectionDot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sectionTitle {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--text-secondary);
+  white-space: nowrap; flex-shrink: 0;
+}
+/* sectionActions always pushed to far right */
+.sectionActions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+/* Any other inline control (e.g. type select) also pushed right */
+.sectionHead > :last-child:not(.sectionDot):not(.sectionTitle):not(.sectionActions) {
+  margin-left: auto;
+}

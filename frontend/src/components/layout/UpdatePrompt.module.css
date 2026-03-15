@@ -1,0 +1,17 @@
+.prompt {
+  position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+  background: var(--bg-raised); border: 1px solid var(--accent-muted); border-radius: var(--radius-xl);
+  padding: 10px 14px 10px 16px; display: flex; align-items: center; gap: 12px;
+  font-size: 12.5px; color: var(--text-primary); box-shadow: var(--shadow-lg), var(--shadow-glow);
+  z-index: 900; white-space: nowrap;
+  animation: popIn 0.22s cubic-bezier(0.34,1.4,0.64,1);
+}
+@keyframes popIn {
+  from { transform: translateX(-50%) translateY(10px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+.prompt button { font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: var(--radius-sm); cursor: pointer; border: none; }
+.prompt button:first-of-type { background: var(--accent); color: #fff; transition: background var(--t-base); }
+.prompt button:first-of-type:hover { background: var(--accent-hover); }
+.prompt button:last-of-type { background: transparent; color: var(--text-muted); transition: color var(--t-base); }
+.prompt button:last-of-type:hover { color: var(--text-primary); }
