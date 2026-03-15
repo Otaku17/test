@@ -84,19 +84,17 @@ jobs:
       - name: Find .app name
         id: appname
         run: |
-          APP=$(ls build/bin/*.app | head -1 | xargs basename)
+          APP=$(find build/bin -maxdepth 1 -name "*.app" -type d | head -1 | xargs basename)
           echo "APP=$APP" >> $GITHUB_OUTPUT
           echo "Found: $APP"
 
       - name: Create DMG
         run: |
-          APP=$(ls build/bin/*.app | head -1)
+          APP=$(find build/bin -maxdepth 1 -name "*.app" -type d | head -1)
           echo "Packaging: $APP"
-          # Créer un dossier staging avec l'app et un lien Applications
           mkdir -p dmg-staging
           cp -R "$APP" dmg-staging/
           ln -s /Applications dmg-staging/Applications
-          # Créer le DMG depuis le dossier staging
           hdiutil create \
             -volname "Crafting Editor" \
             -srcfolder dmg-staging \
