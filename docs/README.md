@@ -6,7 +6,7 @@ Built with [Wails](https://wails.io) (Go + React).
 
 ## Download
 
-Head to the [Releases page](../../releases) and download the version for your OS.
+Head to the [Releases page](https://github.com/Otaku17/test/releases) and download the version for your OS.
 
 ## First launch warnings
 
