@@ -71,9 +71,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install create-dmg
-        run: brew install create-dmg
-
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
@@ -93,24 +90,19 @@ jobs:
 
       - name: Create DMG
         run: |
-          create-dmg \
-            --volname "Crafting Editor" \
-            --window-pos 200 120 \
-            --window-size 600 400 \
-            --icon-size 100 \
-            --icon "${{ steps.appname.outputs.APP }}" 175 190 \
-            --hide-extension "${{ steps.appname.outputs.APP }}" \
-            --app-drop-link 425 190 \
-            "build/bin/CraftingEditor.dmg" \
-            "build/bin/${{ steps.appname.outputs.APP }}" \
-          || true
-          # Fallback si create-dmg échoue (app non signée)
-          if [ ! -f "build/bin/CraftingEditor.dmg" ]; then
-            hdiutil create -volname "Crafting Editor" \
-              -srcfolder "build/bin/${{ steps.appname.outputs.APP }}" \
-              -ov -format UDZO \
-              "build/bin/CraftingEditor.dmg"
-          fi
+          APP=$(ls build/bin/*.app | head -1)
+          echo "Packaging: $APP"
+          # Créer un dossier staging avec l'app et un lien Applications
+          mkdir -p dmg-staging
+          cp -R "$APP" dmg-staging/
+          ln -s /Applications dmg-staging/Applications
+          # Créer le DMG depuis le dossier staging
+          hdiutil create \
+            -volname "Crafting Editor" \
+            -srcfolder dmg-staging \
+            -ov \
+            -format UDZO \
+            build/bin/CraftingEditor.dmg
 
       - uses: actions/upload-artifact@v4
         with:
