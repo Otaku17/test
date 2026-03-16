@@ -10,8 +10,35 @@
   from { transform: translateX(-50%) translateY(10px); opacity: 0; }
   to   { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
-.prompt button { font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: var(--radius-sm); cursor: pointer; border: none; }
-.prompt button:first-of-type { background: var(--accent); color: #fff; transition: background var(--t-base); }
-.prompt button:first-of-type:hover { background: var(--accent-hover); }
-.prompt button:last-of-type { background: transparent; color: var(--text-muted); transition: color var(--t-base); }
-.prompt button:last-of-type:hover { color: var(--text-primary); }
+
+.label { font-size: 12.5px; color: var(--text-primary); }
+.label strong { color: var(--accent); }
+
+.hint { font-size: 11px; color: var(--text-muted); }
+
+.btnPrimary {
+  font-size: 12px; font-weight: 600; padding: 5px 14px;
+  border-radius: var(--radius-sm); cursor: pointer; border: none;
+  background: var(--accent); color: #fff;
+  transition: background var(--t-base);
+}
+.btnPrimary:hover { background: var(--accent-hover); }
+.btnPrimary:disabled { opacity: 0.5; cursor: default; }
+
+.btnClose {
+  font-size: 12px; padding: 5px 8px; border-radius: var(--radius-sm);
+  cursor: pointer; border: none; background: transparent;
+  color: var(--text-muted); transition: color var(--t-base);
+}
+.btnClose:hover { color: var(--text-primary); }
+
+/* Spinner pour l'état downloading */
+.loader {
+  display: inline-block; width: 14px; height: 14px; flex-shrink: 0;
+  border: 2px solid var(--accent-muted); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+

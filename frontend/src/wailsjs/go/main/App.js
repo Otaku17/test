@@ -19,8 +19,14 @@ export function SaveCsv(arg1) {
 export function GetVersion() {
   return window['go']['main']['App']['GetVersion']();
 }
-export function CheckUpdate(arg1) {
-  return window['go']['main']['App']['CheckUpdate'](arg1);
+export function CheckUpdate() {
+  return window['go']['main']['App']['CheckUpdate']();
+}
+export function DownloadAndInstallUpdate(arg1, arg2) {
+  return window['go']['main']['App']['DownloadAndInstallUpdate'](arg1, arg2);
+}
+export function GetCurrentOS() {
+  return window['go']['main']['App']['GetCurrentOS']();
 }
 export function ConfirmClose(arg1) {
   return window['go']['main']['App']['ConfirmClose'](arg1);

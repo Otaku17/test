@@ -17,6 +17,27 @@ export namespace main {
       this.id = source['id'];
     }
   }
+  export class UpdateInfo {
+    currentVersion: string;
+    latestVersion: string;
+    hasUpdate: boolean;
+    assetURL: string;
+    assetName: string;
+
+    static createFrom(source: any = {}) {
+      return new UpdateInfo(source);
+    }
+
+    constructor(source: any = {}) {
+      if ('string' === typeof source) source = JSON.parse(source);
+      this.currentVersion = source['currentVersion'];
+      this.latestVersion = source['latestVersion'];
+      this.hasUpdate = source['hasUpdate'];
+      this.assetURL = source['assetURL'];
+      this.assetName = source['assetName'];
+    }
+  }
+
   export class ProjectData {
     projectName: string;
     projectIconUrl: string;

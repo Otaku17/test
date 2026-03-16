@@ -8,7 +8,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -312,10 +314,11 @@ func (a *App) loadLastProjectPath() string {
 
 // ─── Version & Auto-update ────────────────────────────────────────────────────
 
-// ─── Version & Auto-update ────────────────────────────────────────────────────
+// AppVersion — incrémenter à chaque release (doit correspondre au tag Git sans "v")
+const AppVersion = "0.1.4"
 
-// AppVersion — incrémenter à chaque release
-const AppVersion = "0.1.0"
+// GitHub repo owner/name pour les releases
+const GitHubRepo = "Otaku17/crafting-editor"
 
 // GetVersion retourne la version actuelle
 func (a *App) GetVersion() string {
@@ -327,39 +330,134 @@ type UpdateInfo struct {
 	CurrentVersion string `json:"currentVersion"`
 	LatestVersion  string `json:"latestVersion"`
 	HasUpdate      bool   `json:"hasUpdate"`
-	UpdateURL      string `json:"updateURL"`
+	AssetURL       string `json:"assetURL"`  // URL directe de l'asset pour cet OS
+	AssetName      string `json:"assetName"` // Nom du fichier à télécharger
 }
 
-// CheckUpdate interroge /version.json sur la PWA déployée.
-// La PWA doit exposer un fichier public/version.json : { "version": "x.y.z" }
-func (a *App) CheckUpdate(pwaBaseURL string) (*UpdateInfo, error) {
+// CheckUpdate interroge l'API GitHub Releases pour détecter une nouvelle version.
+// Retourne l'URL de l'asset correspondant à l'OS courant.
+func (a *App) CheckUpdate() (*UpdateInfo, error) {
 	info := &UpdateInfo{
 		CurrentVersion: AppVersion,
 		LatestVersion:  AppVersion,
 		HasUpdate:      false,
-		UpdateURL:      pwaBaseURL,
 	}
 
-	client := &http.Client{Timeout: 5 * 1_000_000_000} // 5s
-	resp, err := client.Get(pwaBaseURL + "/version.json")
+	client := &http.Client{Timeout: 10 * 1_000_000_000} // 10s
+	apiURL := "https://api.github.com/repos/" + GitHubRepo + "/releases/latest"
+
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return info, nil
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "CraftingEditor/"+AppVersion)
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return info, nil // silencieux si pas de réseau
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return info, nil
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return info, nil
 	}
 
-	var remote struct {
-		Version string `json:"version"`
+	var release struct {
+		TagName string `json:"tag_name"`
+		Assets  []struct {
+			Name               string `json:"name"`
+			BrowserDownloadURL string `json:"browser_download_url"`
+		} `json:"assets"`
 	}
-	if json.Unmarshal(body, &remote) == nil && remote.Version != "" {
-		info.LatestVersion = remote.Version
-		info.HasUpdate = remote.Version != AppVersion
+	if err := json.Unmarshal(body, &release); err != nil {
+		return info, nil
 	}
+
+	// Normaliser la version (enlever le "v" préfixe)
+	latestVersion := strings.TrimPrefix(release.TagName, "v")
+	currentVersion := strings.TrimPrefix(AppVersion, "v")
+
+	info.LatestVersion = latestVersion
+	info.HasUpdate = latestVersion != currentVersion && latestVersion != ""
+
+	if info.HasUpdate {
+		// Choisir l'asset selon l'OS courant
+		assetName, assetURL := pickAssetForCurrentOS(release.Assets)
+		info.AssetName = assetName
+		info.AssetURL = assetURL
+	}
+
 	return info, nil
+}
+
+// pickAssetForCurrentOS sélectionne le bon asset selon runtime.GOOS
+func pickAssetForCurrentOS(assets []struct {
+	Name               string `json:"name"`
+	BrowserDownloadURL string `json:"browser_download_url"`
+}) (string, string) {
+	goos := getRuntimeOS()
+	for _, asset := range assets {
+		name := strings.ToLower(asset.Name)
+		switch goos {
+		case "windows":
+			if strings.HasSuffix(name, ".exe") {
+				return asset.Name, asset.BrowserDownloadURL
+			}
+		case "darwin":
+			if strings.HasSuffix(name, ".dmg") {
+				return asset.Name, asset.BrowserDownloadURL
+			}
+		case "linux":
+			if strings.HasSuffix(name, ".appimage") {
+				return asset.Name, asset.BrowserDownloadURL
+			}
+		}
+	}
+	// Fallback : premier asset disponible
+	if len(assets) > 0 {
+		return assets[0].Name, assets[0].BrowserDownloadURL
+	}
+	return "", ""
+}
+
+// DownloadAndInstallUpdate télécharge l'asset et lance l'installation,
+// puis quitte l'application.
+func (a *App) DownloadAndInstallUpdate(assetURL string, assetName string) error {
+	// Dossier temporaire
+	tmpDir := os.TempDir()
+	destPath := filepath.Join(tmpDir, assetName)
+
+	client := &http.Client{Timeout: 5 * 60 * 1_000_000_000} // 5 min
+	resp, err := client.Get(assetURL)
+	if err != nil {
+		return fmt.Errorf("download failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	f, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("cannot create temp file: %w", err)
+	}
+	_, err = io.Copy(f, resp.Body)
+	f.Close()
+	if err != nil {
+		return fmt.Errorf("write failed: %w", err)
+	}
+
+	// Lancer l'installation selon l'OS
+	if err := launchInstaller(destPath); err != nil {
+		return fmt.Errorf("launch installer failed: %w", err)
+	}
+
+	// Quitter l'app pour laisser l'installer prendre la main
+	runtime.Quit(a.ctx)
+	return nil
 }
 
 // ─── Projets récents ──────────────────────────────────────────────────────────
@@ -458,4 +556,41 @@ func (a *App) SaveRecentAfterOpen(icon string) {
 	if a.projectPath != "" {
 		a.saveRecentProject(a.projectPath, icon)
 	}
+}
+
+// ─── Helpers OS ───────────────────────────────────────────────────────────────
+
+// getRuntimeOS retourne "windows", "darwin" ou "linux"
+func getRuntimeOS() string {
+	return goruntime.GOOS
+}
+
+// GetCurrentOS expose l'OS courant au frontend
+func (a *App) GetCurrentOS() string {
+	return goruntime.GOOS
+}
+
+// launchInstaller ouvre l'installeur selon l'OS
+func launchInstaller(path string) error {
+	switch goruntime.GOOS {
+	case "windows":
+		// Lancer l'installeur .exe directement
+		cmd := exec.Command(path)
+		cmd.SysProcAttr = getSysProcAttr()
+		return cmd.Start()
+
+	case "darwin":
+		// Ouvrir le .dmg avec Finder/hdiutil
+		cmd := exec.Command("open", path)
+		return cmd.Start()
+
+	case "linux":
+		// Rendre l'AppImage exécutable et le lancer
+		if err := os.Chmod(path, 0755); err != nil {
+			return err
+		}
+		cmd := exec.Command(path)
+		return cmd.Start()
+	}
+	return fmt.Errorf("unsupported OS: %s", goruntime.GOOS)
 }

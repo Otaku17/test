@@ -190,6 +190,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/download-artifact@v4
         with:
           path: artifacts/
@@ -201,13 +204,15 @@ jobs:
           else
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
-      - name: Update version.json
+      - name: Bump AppVersion in app.go
         run: |
-          echo "{\"version\": \"${{ steps.version.outputs.VERSION }}\"}" > docs/version.json
+          VERSION_CLEAN="${{ steps.version.outputs.VERSION }}"
+          VERSION_CLEAN="${VERSION_CLEAN#v}"
+          sed -i "s/const AppVersion = \"[^\"]*\"/const AppVersion = \"${VERSION_CLEAN}\"/" app.go
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/version.json
-          git diff --cached --quiet || git commit -m "chore: bump version to ${{ steps.version.outputs.VERSION }}"
+          git add app.go
+          git diff --cached --quiet || git commit -m "chore: bump AppVersion to ${VERSION_CLEAN}"
           git push origin HEAD:main || true
       - name: List artifacts
         run: find artifacts/ -type f
