@@ -313,7 +313,7 @@ func (a *App) loadLastProjectPath() string {
 // ─── Version & Auto-update ────────────────────────────────────────────────────
 
 // AppVersion — incrémenter à chaque release (doit correspondre au tag Git sans "v")
-const AppVersion = "0.1.4"
+const AppVersion = "0.1.5"
 
 // GitHub repo owner/name pour les releases
 const GitHubRepo = "Otaku17/test"
