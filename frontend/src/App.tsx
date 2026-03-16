@@ -9,7 +9,7 @@ import { CategoryManager } from './components/CategoryManager/CategoryManager';
 import { JsonViewer } from './components/JsonViewer/JsonViewer';
 import { NewRecipeModal } from './components/Modal/NewRecipeModal';
 import { MissingFilesModal } from './components/Modal/MissingFilesModal';
-import { UpdatePrompt } from './components/layout/UpdatePrompt';
+import { UpdateBanner } from './components/layout/UpdatePrompt';
 import { ToastContainer } from './components/Toast/Toast';
 import { UnsavedModal } from './components/Modal/UnsavedModal';
 import styles from './App.module.css';
@@ -24,7 +24,6 @@ export const App: React.FC = () => {
     configHandle,
     projectName,
     openProject,
-    dirty,
     dirtyKeys,
     csvDirty,
     missingFilesWarnings,
@@ -33,7 +32,6 @@ export const App: React.FC = () => {
     loading,
     addCategory,
     deleteCategory,
-    openProjectPath,
   } = useStore();
 
   const [newRecipeOpen, setNewRecipeOpen] = useState(false);
@@ -148,7 +146,7 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      <UpdatePrompt />
+      {!projectLoaded && <UpdateBanner />}
       <ToastContainer />
       <UnsavedModal />
       <NewRecipeModal

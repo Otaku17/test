@@ -46,7 +46,7 @@
 .items {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
   padding: 0 8px;
 }
 
@@ -56,7 +56,7 @@
 .bottom {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
   padding: 0 8px 4px;
 }
 
@@ -64,8 +64,8 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  height: 34px;
+  gap: 12px;
+  height: 40px;
   padding: 0 10px;
   border-radius: var(--radius-md);
   border: 1px solid transparent;

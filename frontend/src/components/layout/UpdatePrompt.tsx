@@ -1,22 +1,40 @@
 /**
  * UpdatePrompt.tsx
- * Vérifie les MAJ en interrogeant l'API GitHub Releases.
- * Affiche une bannière si une nouvelle version est disponible,
- * avec un bouton "Download & Install" qui télécharge et installe
- * directement depuis le bon asset GitHub.
+ * — Sans projet chargé : bannière "toast" en haut au centre
+ * — Avec projet chargé  : petit badge sous l'icône dans la NavRail
+ *
+ * useUpdateCheck() est un hook singleton (un seul appel API).
+ * UpdateBanner  → affiché dans App.tsx quand pas de projet
+ * UpdateNavBadge → affiché dans NavRail quand projet chargé
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, createContext, useContext } from 'react';
 import styles from './UpdatePrompt.module.css';
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 type UpdateState = 'idle' | 'available' | 'downloading' | 'error';
 
-export const UpdatePrompt: React.FC = () => {
-  const [state, setState]                 = useState<UpdateState>('idle');
+interface UpdateCtx {
+  state: UpdateState;
+  latestVersion: string;
+  assetName: string;
+  dismissed: boolean;
+  errorMsg: string;
+  install: () => Promise<void>;
+  dismiss: () => void;
+}
+
+// ── Context singleton ─────────────────────────────────────────────────────────
+const UpdateContext = createContext<UpdateCtx | null>(null);
+
+export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [state, setState] = useState<UpdateState>('idle');
   const [latestVersion, setLatestVersion] = useState('');
-  const [assetURL, setAssetURL]           = useState('');
-  const [assetName, setAssetName]         = useState('');
-  const [dismissed, setDismissed]         = useState(false);
-  const [errorMsg, setErrorMsg]           = useState('');
+  const [assetURL, setAssetURL] = useState('');
+  const [assetName, setAssetName] = useState('');
+  const [dismissed, setDismissed] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     const check = async () => {
@@ -31,67 +49,216 @@ export const UpdatePrompt: React.FC = () => {
           setState('available');
         }
       } catch {
-        // silencieux si pas de réseau
+        /* silencieux */
       }
     };
-
-    // Vérifier au démarrage après 4s, puis toutes les heures
     const t = setTimeout(check, 4000);
     const interval = setInterval(check, 60 * 60 * 1000);
-    return () => { clearTimeout(t); clearInterval(interval); };
+    return () => {
+      clearTimeout(t);
+      clearInterval(interval);
+    };
   }, []);
 
-  const handleInstall = async () => {
+  const install = async () => {
     if (!assetURL || !assetName) return;
     setState('downloading');
     setErrorMsg('');
     try {
       const fn = (window as any)?.go?.main?.App?.DownloadAndInstallUpdate;
-      if (typeof fn !== 'function') throw new Error('DownloadAndInstallUpdate not available');
+      if (typeof fn !== 'function') throw new Error('Not available');
       await fn(assetURL, assetName);
-      // L'app va quitter d'elle-même après l'installation
     } catch (err: any) {
       setErrorMsg(err?.message ?? 'Installation failed');
       setState('error');
     }
   };
 
-  if (dismissed || state === 'idle') return null;
+  return (
+    <UpdateContext.Provider
+      value={{
+        state,
+        latestVersion,
+        assetName,
+        dismissed,
+        errorMsg,
+        install,
+        dismiss: () => setDismissed(true),
+      }}
+    >
+      {children}
+    </UpdateContext.Provider>
+  );
+};
+
+const useUpdate = () => useContext(UpdateContext)!;
+
+// ── Bannière haut-centre (sans projet) ────────────────────────────────────────
+export const UpdateBanner: React.FC = () => {
+  const {
+    state,
+    latestVersion,
+    assetName,
+    dismissed,
+    errorMsg,
+    install,
+    dismiss,
+  } = useUpdate();
+
+  if (state === 'idle' || dismissed) return null;
 
   return (
-    <div className={styles.prompt}>
+    <div className={styles.banner}>
+      <div className={styles.bannerGlow} />
+
       {state === 'available' && (
         <>
-          <span className={styles.label}>🆕 Version <strong>{latestVersion}</strong> available</span>
-          <button className={styles.btnPrimary} onClick={handleInstall}>
-            ⬇ Download &amp; Install
+          <div className={styles.bannerText}>
+            <span className={styles.bannerTitle}>New update available</span>
+            <span className={styles.bannerSub}>
+              Version <strong>v{latestVersion}</strong> is ready to install
+            </span>
+          </div>
+          <button className={styles.bannerBtn} onClick={install}>
+            Download &amp; Install
           </button>
-          <button className={styles.btnClose} onClick={() => setDismissed(true)} title="Dismiss">✕</button>
+          <button
+            className={styles.bannerClose}
+            onClick={dismiss}
+            title="Dismiss"
+          >
+            ✕
+          </button>
         </>
       )}
 
       {state === 'downloading' && (
         <>
-          <span className={styles.loader} />
-          <span className={styles.label}>Downloading {assetName}…</span>
-          <span className={styles.hint}>The app will restart automatically.</span>
+          <span className={styles.bannerSpinner} />
+          <div className={styles.bannerText}>
+            <span className={styles.bannerTitle}>Downloading update…</span>
+            <span className={styles.bannerSub}>
+              {assetName} — app will restart automatically
+            </span>
+          </div>
         </>
       )}
 
       {state === 'error' && (
         <>
-          <span className={styles.label}>⚠ Update failed</span>
-          {errorMsg && <span className={styles.hint}>{errorMsg}</span>}
-          <button className={styles.btnPrimary} onClick={handleInstall}>Retry</button>
-          <button className={styles.btnClose} onClick={() => setDismissed(true)}>✕</button>
+          <span className={styles.bannerIcon} style={{ color: 'var(--red)' }}>
+            ⚠
+          </span>
+          <div className={styles.bannerText}>
+            <span className={styles.bannerTitle}>Update failed</span>
+            {errorMsg && <span className={styles.bannerSub}>{errorMsg}</span>}
+          </div>
+          <button className={styles.bannerBtn} onClick={install}>
+            Retry
+          </button>
+          <button className={styles.bannerClose} onClick={dismiss}>
+            ✕
+          </button>
         </>
       )}
     </div>
   );
 };
 
-// Stub conservé pour compatibilité avec TitleBar
+// ── Badge NavRail (avec projet) ───────────────────────────────────────────────
+export const UpdateNavBadge: React.FC = () => {
+  const { state, latestVersion, dismissed, errorMsg, install, dismiss } =
+    useUpdate();
+  const [expanded, setExpanded] = useState(false);
+
+  if (state === 'idle' || dismissed) return null;
+
+  return (
+    <div className={styles.navBadgeWrap}>
+      <button
+        className={styles.navBadge}
+        onClick={() => setExpanded((v) => !v)}
+        title={`Update available: v${latestVersion}`}
+      >
+        <svg
+          className={styles.navIcon}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 3v12" />
+          <path d="M7 10l5 5 5-5" />
+          <path d="M5 21h14" />
+        </svg>
+        <span className={styles.navLabel}>Update</span>
+      </button>
+
+      {expanded && (
+        <div className={styles.navPopover}>
+          {state === 'available' && (
+            <>
+              <div className={styles.popTitle}>
+                🆕 v{latestVersion} available
+              </div>
+              <button className={styles.popBtn} onClick={install}>
+                ⬇ Install &amp; restart
+              </button>
+              <button
+                className={styles.popDismiss}
+                onClick={() => {
+                  dismiss();
+                  setExpanded(false);
+                }}
+              >
+                Dismiss
+              </button>
+            </>
+          )}
+          {state === 'downloading' && (
+            <>
+              <span className={styles.popSpinner} />
+              <div className={styles.popTitle}>Downloading…</div>
+              <div className={styles.popHint}>
+                App will restart automatically.
+              </div>
+            </>
+          )}
+          {state === 'error' && (
+            <>
+              <div className={styles.popTitle}>⚠ Failed</div>
+              {errorMsg && <div className={styles.popHint}>{errorMsg}</div>}
+              <button className={styles.popBtn} onClick={install}>
+                Retry
+              </button>
+              <button
+                className={styles.popDismiss}
+                onClick={() => {
+                  dismiss();
+                  setExpanded(false);
+                }}
+              >
+                Dismiss
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Stub conservé pour compatibilité ─────────────────────────────────────────
 export function useInstallPrompt() {
   return { canInstall: false, install: async () => {} };
 }
 
+// ── Ancien composant UpdatePrompt — redirige selon projectLoaded ──────────────
+export const UpdatePrompt: React.FC<{ projectLoaded?: boolean }> = ({
+  projectLoaded,
+}) => {
+  if (projectLoaded) return <UpdateNavBadge />;
+  return <UpdateBanner />;
+};

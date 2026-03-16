@@ -310,12 +310,13 @@ export const useStore = create<AppState>((set, get) => ({
       const data = await openProjectByPath(path);
       if (!data) {
         set({ loading: false });
-        return;
+        throw new Error('Project not found');
       }
       applyProjectData(data, get);
     } catch (e: any) {
       set({ loading: false });
-      get().addToast('Could not open project: ' + e.message, 'err');
+      // Ne pas afficher de toast ici — le Dashboard gère l'état d'erreur visuellement
+      throw e;
     }
   },
 

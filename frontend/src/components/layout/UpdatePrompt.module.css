@@ -1,44 +1,264 @@
-.prompt {
-  position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-  background: var(--bg-raised); border: 1px solid var(--accent-muted); border-radius: var(--radius-xl);
-  padding: 10px 14px 10px 16px; display: flex; align-items: center; gap: 12px;
-  font-size: 12.5px; color: var(--text-primary); box-shadow: var(--shadow-lg), var(--shadow-glow);
-  z-index: 900; white-space: nowrap;
-  animation: popIn 0.22s cubic-bezier(0.34,1.4,0.64,1);
-}
-@keyframes popIn {
-  from { transform: translateX(-50%) translateY(10px); opacity: 0; }
-  to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+/* ══════════════════════════════════════════════════════
+   BANNIÈRE — haut au centre (sans projet chargé)
+══════════════════════════════════════════════════════ */
+.banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-muted);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--accent-muted),
+    0 0 24px #5b8af520;
+  white-space: nowrap;
+  animation: bannerIn 0.28s cubic-bezier(0.34, 1.4, 0.64, 1);
+  overflow: visible;
 }
 
-.label { font-size: 12.5px; color: var(--text-primary); }
-.label strong { color: var(--accent); }
-
-.hint { font-size: 11px; color: var(--text-muted); }
-
-.btnPrimary {
-  font-size: 12px; font-weight: 600; padding: 5px 14px;
-  border-radius: var(--radius-sm); cursor: pointer; border: none;
-  background: var(--accent); color: #fff;
-  transition: background var(--t-base);
+@keyframes bannerIn {
+  from {
+    transform: translateX(-50%) translateY(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
 }
-.btnPrimary:hover { background: var(--accent-hover); }
-.btnPrimary:disabled { opacity: 0.5; cursor: default; }
 
-.btnClose {
-  font-size: 12px; padding: 5px 8px; border-radius: var(--radius-sm);
-  cursor: pointer; border: none; background: transparent;
-  color: var(--text-muted); transition: color var(--t-base);
+/* Glow décoratif derrière la bannière */
+.bannerGlow {
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-xl);
+  background: radial-gradient(ellipse at 50% 0%, #5b8af514 0%, transparent 70%);
+  pointer-events: none;
 }
-.btnClose:hover { color: var(--text-primary); }
 
-/* Spinner pour l'état downloading */
-.loader {
-  display: inline-block; width: 14px; height: 14px; flex-shrink: 0;
-  border: 2px solid var(--accent-muted); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin 0.7s linear infinite;
+.bannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
+
+.bannerTitle {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+.bannerSub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.bannerSub strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.bannerBtn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-muted);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  cursor: pointer;
+  transition:
+    background var(--t-base),
+    color var(--t-base),
+    border-color var(--t-base);
+  flex-shrink: 0;
+}
+.bannerBtn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.bannerClose {
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--t-base);
+  flex-shrink: 0;
+}
+.bannerClose:hover {
+  color: var(--text-primary);
+}
+
+/* Spinner bannière */
+.bannerSpinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 2px solid var(--accent-muted);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
+/* ══════════════════════════════════════════════════════
+   BADGE NAVRAIL — sous l'icône (avec projet chargé)
+══════════════════════════════════════════════════════ */
+.navBadgeWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 8px;
+  margin-top: 2px;
+}
+
+.navBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px;
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--green-muted);
+  background: var(--green-subtle);
+  color: var(--green);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--t-base),
+    border-color var(--t-base);
+}
+.navIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #22c55e;
+  filter: drop-shadow(0 0 2px #22c55e60);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 6px var(--accent);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 2px var(--accent);
+  }
+}
+
+.navLabel {
+  flex: 1;
+  text-align: left;
+}
+
+/* Popover au clic sur le badge NavRail */
+.navPopover {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 0;
+  width: 200px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-muted);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px #5b8af520;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: popoverIn 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+  z-index: 500;
+}
+
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.popTitle {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.popHint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.popBtn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-muted);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  cursor: pointer;
+  transition:
+    background var(--t-base),
+    color var(--t-base);
+  text-align: center;
+}
+.popBtn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.popDismiss {
+  font-size: 11px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: color var(--t-base);
+}
+.popDismiss:hover {
+  color: var(--text-primary);
+}
+
+/* Spinner popover */
+.popSpinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--accent-muted);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  align-self: center;
+}

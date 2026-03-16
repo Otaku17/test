@@ -20,4 +20,6 @@ export interface RecentProject {
 export function GetRecentProjects(): Promise<RecentProject[]>;
 export function OpenProjectPath(arg1: string): Promise<main.ProjectData>;
 export function RemoveRecentProject(arg1: string): Promise<void>;
+export function RedefineRecentProject(arg1: string): Promise<main.ProjectData>;
 export function SaveRecentAfterOpen(arg1: string): Promise<void>;
+export function CheckRecentPaths(): Promise<string[]>;

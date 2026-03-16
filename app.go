@@ -30,10 +30,8 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	runtime.WindowExecJS(a.ctx, "window.__WAILS__ = true;")
-	last := a.loadLastProjectPath()
-	if last != "" {
-		runtime.WindowSetTitle(a.ctx, "Crafting Editor — "+filepath.Base(last))
-	}
+	// Titre neutre au lancement — sera mis à jour quand un projet est chargé
+	runtime.WindowSetTitle(a.ctx, "Crafting Editor")
 }
 
 func (a *App) shutdown(ctx context.Context) {}
@@ -318,7 +316,7 @@ func (a *App) loadLastProjectPath() string {
 const AppVersion = "0.1.4"
 
 // GitHub repo owner/name pour les releases
-const GitHubRepo = "Otaku17/crafting-editor"
+const GitHubRepo = "Otaku17/test"
 
 // GetVersion retourne la version actuelle
 func (a *App) GetVersion() string {
@@ -551,11 +549,61 @@ func (a *App) RemoveRecentProject(path string) {
 	os.WriteFile(a.recentProjectsFile(), data, 0644)
 }
 
+// RedefineRecentProject — ouvre un dialogue pour choisir un nouveau dossier,
+// remplace l'entrée oldPath dans les recents et ouvre le projet.
+func (a *App) RedefineRecentProject(oldPath string) (*ProjectData, error) {
+	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select new location for this project",
+	})
+	if err != nil || dir == "" {
+		return nil, nil // annulé
+	}
+
+	// Supprimer l'ancienne entrée
+	projects := a.GetRecentProjects()
+	filtered := projects[:0]
+	for _, p := range projects {
+		if p.Path != oldPath {
+			filtered = append(filtered, p)
+		}
+	}
+	// Sauvegarder sans l'ancienne
+	if data, err2 := json.MarshalIndent(filtered, "", "  "); err2 == nil {
+		os.WriteFile(a.recentProjectsFile(), data, 0644)
+	}
+
+	// Ouvrir le nouveau chemin (va l'ajouter en tête des recents)
+	a.projectPath = dir
+	runtime.WindowSetTitle(a.ctx, "Crafting Editor — "+filepath.Base(dir))
+	a.saveLastProjectPath(dir)
+	projectData, err := a.loadProject(dir)
+	if err == nil && projectData != nil {
+		a.saveRecentProject(dir, projectData.ProjectIcon)
+	}
+	return projectData, err
+}
+
 // SaveRecentAfterOpen — appelé par le frontend après openProject() pour sauvegarder l'icône
 func (a *App) SaveRecentAfterOpen(icon string) {
 	if a.projectPath != "" {
 		a.saveRecentProject(a.projectPath, icon)
 	}
+}
+
+// CheckRecentPaths — vérifie l'existence de chaque dossier dans les recents.
+// Retourne la liste des paths invalides.
+func (a *App) CheckRecentPaths() []string {
+	projects := a.GetRecentProjects()
+	var invalid []string
+	for _, p := range projects {
+		if _, err := os.Stat(p.Path); os.IsNotExist(err) {
+			invalid = append(invalid, p.Path)
+		}
+	}
+	if invalid == nil {
+		return []string{}
+	}
+	return invalid
 }
 
 // ─── Helpers OS ───────────────────────────────────────────────────────────────

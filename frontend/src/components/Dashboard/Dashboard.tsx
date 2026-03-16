@@ -26,22 +26,10 @@ function timeAgo(ts: string): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-const FolderIcon = () => (
-  <svg
-    width="15"
-    height="15"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-  </svg>
-);
 const TrashIcon = () => (
   <svg
-    width="12"
-    height="12"
+    width="22"
+    height="22"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -50,42 +38,75 @@ const TrashIcon = () => (
     <polyline points="3 6 5 6 21 6" />
     <path d="M19 6l-1 14H6L5 6" />
     <path d="M10 11v6M14 11v6" />
+    <path d="M9 6V4h6v2" />
   </svg>
 );
-const RefreshIcon = () => (
+
+const FolderPickIcon = () => (
   <svg
-    width="12"
-    height="12"
+    width="22"
+    height="22"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
   >
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-    <path d="M3 3v5h5" />
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
   </svg>
 );
+
+const PlusIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const GRID_SIZE = 4;
 
 export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
   const { openProject, openProjectPath } = useStore();
   const [recents, setRecents] = useState<RecentProject[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
-  const [error, setError] = useState<Record<string, string>>({});
+  const [error, setError] = useState<Record<string, boolean>>({});
 
+  const refreshRecents = async () => {
+    const data: RecentProject[] | null = await goCall('GetRecentProjects');
+    if (data) setRecents(data);
+    return data;
+  };
+
+  // Au montage : charger les recents puis vérifier les paths invalides côté Go
   useEffect(() => {
-    goCall('GetRecentProjects').then((data: RecentProject[] | null) => {
-      if (data) setRecents(data);
-    });
+    const init = async () => {
+      await refreshRecents();
+      const invalid: string[] | null = await goCall('CheckRecentPaths');
+      if (invalid && invalid.length > 0) {
+        const errMap: Record<string, boolean> = {};
+        invalid.forEach((p) => {
+          errMap[p] = true;
+        });
+        setError(errMap);
+      }
+    };
+    init();
   }, []);
 
   const handleOpen = async (path: string) => {
+    if (error[path]) return; // path invalide connu — ne rien faire
     setLoading(path);
-    setError((e) => ({ ...e, [path]: '' }));
     try {
       await openProjectPath(path);
       onOpen?.();
     } catch {
-      setError((prev) => ({ ...prev, [path]: 'Folder not found' }));
+      setError((prev) => ({ ...prev, [path]: true }));
     } finally {
       setLoading(null);
     }
@@ -95,54 +116,99 @@ export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
     ev.stopPropagation();
     await goCall('RemoveRecentProject', path);
     setRecents((r) => r.filter((p) => p.path !== path));
+    setError((e) => {
+      const n = { ...e };
+      delete n[path];
+      return n;
+    });
   };
 
   const handleRedefine = async (path: string, ev: React.MouseEvent) => {
     ev.stopPropagation();
-    await openProject();
-    goCall('GetRecentProjects').then((data: RecentProject[] | null) => {
-      if (data) setRecents(data);
-    });
+    setLoading(path);
+    try {
+      const data = await goCall('RedefineRecentProject', path);
+      if (data) {
+        await refreshRecents();
+        setError((e) => {
+          const n = { ...e };
+          delete n[path];
+          return n;
+        });
+        onOpen?.();
+      }
+    } catch {
+      // annulé
+    } finally {
+      setLoading(null);
+    }
   };
+
+  const handleNewProject = async () => {
+    await openProject();
+    await refreshRecents();
+    onOpen?.();
+  };
+
+  const slots: (RecentProject | null)[] = [
+    ...recents.slice(0, GRID_SIZE),
+    ...Array(Math.max(0, GRID_SIZE - recents.length)).fill(null),
+  ];
+
+  const firstEmptyIndex = slots.findIndex((s) => s === null);
 
   return (
     <div className={styles.root}>
       <div className={styles.page}>
-        {/* ── Logo + titre */}
+        {/* Hero */}
         <div className={styles.hero}>
           <img src={appIconUrl} alt="Crafting Editor" className={styles.logo} />
-          <h1 className={styles.title}>Crafting Editor</h1>
-          <p className={styles.sub}>Pokémon SDK recipe editor</p>
+          <div className={styles.heroText}>
+            <h1 className={styles.title}>Crafting Editor</h1>
+            <p className={styles.sub}>Pokémon SDK recipe editor</p>
+          </div>
         </div>
 
-        {/* ── Bouton principal */}
-        <button
-          className={styles.openBtn}
-          onClick={async () => {
-            await openProject();
-            onOpen?.();
-          }}
-        >
-          <FolderIcon />
-          Open project
-        </button>
-
-        {/* ── Projets récents */}
-        {recents.length > 0 && (
-          <div className={styles.section}>
-            <span className={styles.sectionLabel}>Recent</span>
-            <div className={styles.list}>
-              {recents.map((p) => {
-                const isLoading = loading === p.path;
-                const err = error[p.path];
+        {/* Grille 2×2 */}
+        <div className={styles.section}>
+          <span className={styles.sectionLabel}>Recent projects</span>
+          <div className={styles.grid}>
+            {slots.map((p, i) => {
+              if (!p) {
+                const isNext = i === firstEmptyIndex;
                 return (
-                  <div
-                    key={p.path}
-                    className={`${styles.card} ${isLoading ? styles.cardBusy : ''} ${err ? styles.cardErr : ''}`}
-                    onClick={() => !isLoading && handleOpen(p.path)}
+                  <button
+                    key={`empty-${i}`}
+                    className={`${styles.emptySlot} ${!isNext ? styles.emptySlotGhost : ''}`}
+                    onClick={isNext ? handleNewProject : undefined}
+                    disabled={!isNext}
                   >
-                    {/* Icône projet */}
-                    <div className={styles.cardThumb}>
+                    {isNext && <PlusIcon />}
+                    <span>{isNext ? 'Open project' : ''}</span>
+                  </button>
+                );
+              }
+
+              const isLoading = loading === p.path;
+              const hasErr = !!error[p.path];
+
+              return (
+                <div
+                  key={p.path}
+                  className={[
+                    styles.card,
+                    isLoading ? styles.cardBusy : '',
+                    hasErr ? styles.cardErr : '',
+                  ].join(' ')}
+                  onClick={() => !isLoading && !hasErr && handleOpen(p.path)}
+                >
+                  {isLoading && <div className={styles.progress} />}
+
+                  {/* Header: thumb + actions */}
+                  <div className={styles.cardHeader}>
+                    <div
+                      className={`${styles.cardThumb} ${hasErr ? styles.cardThumbErr : ''}`}
+                    >
                       {p.icon ? (
                         <img
                           src={p.icon}
@@ -151,8 +217,8 @@ export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
                         />
                       ) : (
                         <svg
-                          width="16"
-                          height="16"
+                          width="14"
+                          height="14"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
@@ -163,56 +229,62 @@ export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
                       )}
                     </div>
 
-                    {/* Infos */}
-                    <div className={styles.cardBody}>
-                      <span className={styles.cardName}>{p.name}</span>
-                      <span className={styles.cardPath} title={p.path}>
-                        {p.path}
-                      </span>
-                      {err ? (
-                        <span className={styles.cardErrMsg}>{err}</span>
-                      ) : (
-                        timeAgo(p.openedAt) && (
-                          <span className={styles.cardAge}>
-                            {timeAgo(p.openedAt)}
-                          </span>
-                        )
-                      )}
-                    </div>
-
-                    {/* Actions */}
                     <div
-                      className={styles.cardBtns}
+                      className={styles.cardActions}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {err && (
-                        <button
-                          className={styles.iconBtn}
-                          title="Browse for new path"
-                          onClick={(e) => handleRedefine(p.path, e)}
-                        >
-                          <RefreshIcon />
-                        </button>
-                      )}
                       <button
-                        className={styles.iconBtn}
-                        title="Remove"
+                        className={`${styles.actionBtn} ${styles.actionFolder} ${hasErr ? styles.actionFolderErr : ''}`}
+                        title="Change project folder"
+                        onClick={(e) => handleRedefine(p.path, e)}
+                        disabled={isLoading}
+                      >
+                        <FolderPickIcon />
+                        {hasErr && <span>Redefine</span>}
+                      </button>
+
+                      <button
+                        className={`${styles.actionBtn} ${styles.actionDelete}`}
+                        title="Remove from recents"
                         onClick={(e) => handleRemove(p.path, e)}
+                        disabled={isLoading}
                       >
                         <TrashIcon />
                       </button>
                     </div>
-
-                    {isLoading && <div className={styles.progress} />}
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* Infos */}
+                  <div className={styles.cardBody}>
+                    <span className={styles.cardName}>{p.name}</span>
+                    <span className={styles.cardPath} title={p.path}>
+                      {p.path}
+                    </span>
+                  </div>
+
+                  {/* Footer */}
+                  <div className={styles.cardFooter}>
+                    {hasErr ? (
+                      <span className={styles.cardErrMsg}>
+                       
+                        Folder not found
+                      </span>
+                    ) : (
+                      timeAgo(p.openedAt) && (
+                        <span className={styles.cardAge}>
+                          {timeAgo(p.openedAt)}
+                        </span>
+                      )
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         <p className={styles.hint}>
-          <kbd>Ctrl+O</kbd> to open
+          <kbd>Ctrl+O</kbd> to open a project
         </p>
       </div>
     </div>

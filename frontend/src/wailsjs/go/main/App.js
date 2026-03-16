@@ -41,6 +41,12 @@ export function OpenProjectPath(arg1) {
 export function RemoveRecentProject(arg1) {
   return window['go']['main']['App']['RemoveRecentProject'](arg1);
 }
+export function RedefineRecentProject(arg1) {
+  return window['go']['main']['App']['RedefineRecentProject'](arg1);
+}
 export function SaveRecentAfterOpen(arg1) {
   return window['go']['main']['App']['SaveRecentAfterOpen'](arg1);
+}
+export function CheckRecentPaths() {
+  return window['go']['main']['App']['CheckRecentPaths']();
 }

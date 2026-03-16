@@ -1,4 +1,4 @@
-/* ── Layout */
+/* ── Layout root */
 .root {
   flex: 1;
   overflow-y: auto;
@@ -11,33 +11,40 @@
 
 .page {
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 28px;
   text-align: center;
 }
 
 /* ── Hero */
 .hero {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 12px;
+  gap: 18px;
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .logo {
-  width: 96px;
-  height: 96px;
-  border-radius: 22px;
+  width: 108px;
+  height: 108px;
+  border-radius: 18px;
   object-fit: contain;
-  image-rendering: pixelated;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  flex-shrink: 0;
 }
 
 .title {
-  font-size: 26px;
+  font-size: 42px;
   font-weight: 800;
   letter-spacing: -0.04em;
   color: var(--text-primary);
@@ -46,31 +53,10 @@
 }
 
 .sub {
-  font-size: 13px;
+  font-size: 18px;
   color: var(--text-muted);
   margin: 0;
 }
-
-/* ── Open button */
-.openBtn {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  height: 40px;
-  padding: 0 22px;
-  border-radius: var(--radius-md);
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  font-family: var(--font-ui);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity var(--t-fast), transform var(--t-fast);
-  box-shadow: 0 2px 12px var(--accent-glow);
-}
-.openBtn:hover { opacity: 0.88; transform: translateY(-1px); }
-.openBtn:active { transform: none; opacity: 1; }
 
 /* ── Section */
 .section {
@@ -90,85 +76,253 @@
   padding: 0 2px;
 }
 
-/* ── Cards list */
-.list { display: flex; flex-direction: column; gap: 4px; }
+/* ── Grille 2×2 */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
 
+/* ── Slot vide */
+.emptySlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 116px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-default);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--t-base), color var(--t-base), background var(--t-base);
+}
+.emptySlot:hover {
+  border-color: var(--accent-muted);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+.emptySlot svg { opacity: 0.5; transition: opacity var(--t-base); }
+.emptySlot:hover svg { opacity: 1; }
+
+/* Slot fantôme — visible mais pas cliquable */
+.emptySlotGhost {
+  opacity: 0.2;
+  cursor: default;
+  pointer-events: none;
+  border-style: dashed;
+}
+.emptySlotGhost:hover {
+  border-color: var(--border-default);
+  color: var(--text-muted);
+  background: transparent;
+}
+
+/* ── Card projet */
 .card {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 10px 8px;
+  height: 116px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: border-color var(--t-base), background var(--t-base);
+  transition: border-color var(--t-base), background var(--t-base), box-shadow var(--t-base);
+  text-align: left;
+  box-sizing: border-box;
 }
-.card:hover { border-color: var(--border-strong); background: var(--bg-overlay); }
+.card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-overlay);
+  box-shadow: var(--shadow-sm);
+}
 .cardBusy { opacity: 0.5; pointer-events: none; }
-.cardErr  { border-color: color-mix(in srgb, #f97583 40%, transparent); }
 
-/* Thumbnail */
+/* État erreur */
+.cardErr {
+  border-color: var(--red-muted) !important;
+  background: var(--red-subtle) !important;
+  cursor: default;
+}
+.cardErr:hover {
+  border-color: var(--red) !important;
+  background: var(--red-subtle) !important;
+  box-shadow: 0 0 0 1px var(--red-muted);
+}
+
+/* ── Header (thumb + actions) */
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Thumbnail projet 32×32 */
 .cardThumb {
-  width: 36px; height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; color: var(--text-muted); overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  overflow: hidden;
+}
+.cardThumbErr {
+  border-color: var(--red-muted);
+  background: var(--red-subtle);
+  color: var(--red);
 }
 .cardThumbImg {
-  width: 36px; height: 36px;
-  object-fit: contain; image-rendering: pixelated;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
-/* Body */
-.cardBody {
-  flex: 1; min-width: 0;
-  display: flex; flex-direction: column; gap: 2px;
+/* Actions */
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity var(--t-base);
+  flex-shrink: 0;
 }
-.cardName {
-  font-size: 12.5px; font-weight: 700;
-  color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.card:hover .cardActions,
+.cardErr .cardActions {
+  opacity: 1;
 }
-.cardPath {
-  font-size: 10.5px; color: var(--text-muted);
-  font-family: var(--font-mono);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.cardAge   { font-size: 10.5px; color: var(--text-muted); }
-.cardErrMsg { font-size: 10.5px; color: #f97583; font-weight: 600; }
 
-/* Action buttons */
-.cardBtns {
-  display: flex; gap: 3px; flex-shrink: 0;
-  opacity: 0; transition: opacity var(--t-base);
-}
-.card:hover .cardBtns { opacity: 1; }
-
-.iconBtn {
-  width: 26px; height: 26px;
-  display: flex; align-items: center; justify-content: center;
+/* Bouton d'action générique */
+.actionBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 7px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
   transition: background var(--t-base), color var(--t-base), border-color var(--t-base);
-}
-.iconBtn:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-color: var(--border-default);
+  white-space: nowrap;
 }
 
-/* Loading bar */
+/* Folder — discret par défaut */
+.actionFolder {
+  color: var(--text-muted);
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+.actionFolder:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+/* Folder en mode erreur — jaune avec label */
+.actionFolderErr {
+  color: var(--yellow);
+  border-color: var(--yellow-muted);
+  background: var(--yellow-subtle);
+  width: auto;
+  padding: 0 7px;
+}
+.actionFolderErr:hover {
+  background: var(--yellow-muted);
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+/* Delete */
+.actionDelete {
+  color: var(--text-muted);
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+.actionDelete:hover {
+  background: var(--red-subtle);
+  border-color: var(--red-muted);
+  color: var(--red);
+}
+
+/* ── Body */
+.cardBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+.cardErr .cardName { color: var(--red); }
+
+.cardPath {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* ── Footer */
+.cardFooter {
+  display: flex;
+  align-items: center;
+}
+
+.cardAge {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cardErrMsg {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+/* ── Loading bar */
 .progress {
-  position: absolute; bottom: 0; left: -40%; height: 2px; width: 40%;
-  background: var(--accent); border-radius: 0 2px 2px 0;
+  position: absolute;
+  bottom: 0;
+  left: -40%;
+  height: 2px;
+  width: 40%;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
   animation: slide 0.9s ease-in-out infinite;
 }
 @keyframes slide {
@@ -177,10 +331,16 @@
 }
 
 /* ── Hint */
-.hint { font-size: 11px; color: var(--text-muted); }
+.hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+}
 .hint kbd {
-  font-family: var(--font-mono); font-size: 10px;
-  padding: 2px 5px; border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 4px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
