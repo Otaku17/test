@@ -1,6 +1,11 @@
 // ─── Condition types ─────────────────────────────────────────────────────────
 
-export type ConditionType = 'manual' | 'switch' | 'variable' | 'recipe' | 'operator';
+export type ConditionType =
+  | 'manual'
+  | 'switch'
+  | 'variable'
+  | 'recipe'
+  | 'operator';
 
 export interface ManualCondition {
   type: 'manual';

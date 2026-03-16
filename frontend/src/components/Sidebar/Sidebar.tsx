@@ -6,22 +6,23 @@ import styles from './Sidebar.module.css';
 
 const SearchIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
   </svg>
 );
 const ChevronIcon = ({ open }: { open: boolean }) => (
-  <svg
-    width="11" height="11" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2.5"
-    style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 180ms ease' }}
-  >
-    <polyline points="9 18 15 12 9 6" />
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+    style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 180ms ease' }}>
+    <polyline points="9 18 15 12 9 6"/>
   </svg>
 );
 const DiscardIcon = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-    <path d="M3 3v5h5"/>
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+  </svg>
+);
+const PlusIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
 );
 
@@ -30,20 +31,21 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onNewRecipe }) => {
-  const { lang, config, configHandle, projectName, currentKey, dirtyKeys, discardRecipe, setCurrentKey, setActiveTab, itemNames, itemIcons } = useStore();
+  const {
+    lang, config, configHandle, projectName,
+    currentKey, dirtyKeys, discardRecipe,
+    setCurrentKey, setActiveTab, itemNames, itemIcons,
+  } = useStore();
   const projectLoaded = !!configHandle || !!projectName;
   const [filter, setFilter] = useState('');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const allKeys = Object.keys(config.data);
-
   const filtered = filter
-    ? allKeys.filter((k) => {
+    ? allKeys.filter(k => {
         const r = config.data[k];
-        return (
-          k.toLowerCase().includes(filter.toLowerCase()) ||
-          (r.category || '').toLowerCase().includes(filter.toLowerCase())
-        );
+        return k.toLowerCase().includes(filter.toLowerCase()) ||
+               (r.category || '').toLowerCase().includes(filter.toLowerCase());
       })
     : allKeys;
 
@@ -55,20 +57,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewRecipe }) => {
     groups[group].push(key);
   }
   const sortedCats = Object.keys(groups).sort((a, b) => {
-    if (a === 'all') return -1;
-    if (b === 'all') return 1;
     if (a === 'uncategorized') return 1;
     if (b === 'uncategorized') return -1;
     return a.localeCompare(b);
   });
 
-  const toggleCollapse = (cat: string) => {
-    setCollapsed((prev) => {
+  const toggleCollapse = (cat: string) =>
+    setCollapsed(prev => {
       const next = new Set(prev);
       next.has(cat) ? next.delete(cat) : next.add(cat);
       return next;
     });
-  };
 
   const openRecipe = (key: string) => {
     setCurrentKey(key);
@@ -97,25 +96,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewRecipe }) => {
       <div className={styles.search}>
         <span className={styles.searchIcon}><SearchIcon /></span>
         <input
-          type="text"
-          className={styles.searchInput}
+          type="text" className={styles.searchInput}
           placeholder={t(lang, 'filter_ph')}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          value={filter} onChange={e => setFilter(e.target.value)}
         />
       </div>
 
-      {/* Grouped list */}
+      {/* List */}
       <div className={styles.list}>
-        {filtered.length === 0 && (
-          <div className={styles.empty}>No results</div>
-        )}
-
-        {sortedCats.map((cat) => {
+        {filtered.length === 0 && <div className={styles.empty}>No results</div>}
+        {sortedCats.map(cat => {
           const keys = groups[cat];
           const isOpen = !collapsed.has(cat);
-          const dirtyInCat = keys.filter((k) => dirtyKeys.has(k)).length;
-
+          const dirtyInCat = keys.filter(k => dirtyKeys.has(k)).length;
           return (
             <div key={cat} className={styles.group}>
               <button className={styles.groupHeader} onClick={() => toggleCollapse(cat)}>
@@ -125,36 +118,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewRecipe }) => {
                   : <Badge variant={catVariant(cat)}>{cat}</Badge>
                 }
                 <span className={styles.groupCount}>{keys.length}</span>
-                {dirtyInCat > 0 && (
-                  <span className={styles.groupDirty} title={`${dirtyInCat} unsaved`} />
-                )}
+                {dirtyInCat > 0 && <span className={styles.groupDirty} />}
               </button>
-
               {isOpen && (
                 <div className={styles.groupItems}>
-                  {keys.map((key) => {
+                  {keys.map(key => {
                     const isDirty = dirtyKeys.has(key);
                     const isActive = key === currentKey;
                     return (
                       <div
                         key={key}
-                        className={[
-                          styles.item,
-                          isActive ? styles.active : '',
-                          isDirty ? styles.dirty : '',
-                        ].join(' ')}
+                        className={[styles.item, isActive ? styles.active : '', isDirty ? styles.dirty : ''].join(' ')}
                         onClick={() => openRecipe(key)}
                       >
+                        {isDirty && <span className={styles.dirtyDot} />}
+                        {itemIcons[key] && <img src={itemIcons[key]} className={styles.itemIcon} alt="" />}
+                        <span className={styles.itemKey}>{itemNames[key] ?? key}</span>
                         {isDirty && (
-                          <span className={styles.dirtyDot} title="Unsaved changes" />
-                        )}
-                        {itemIcons[key] && <img src={itemIcons[key]} className={styles.itemIcon} alt="" />}<span className={styles.itemKey}>{itemNames[key] ?? key}</span>
-                        {isDirty && (
-                          <button
-                            className={styles.discardBtn}
-                            onClick={(e) => handleDiscard(e, key)}
-                            title="Discard changes"
-                          >
+                          <button className={styles.discardBtn} onClick={e => handleDiscard(e, key)} title="Discard">
                             <DiscardIcon />
                           </button>
                         )}
@@ -170,7 +151,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewRecipe }) => {
 
       {/* Footer */}
       <div className={styles.foot}>
-        <button className={styles.catBtn} onClick={onNewRecipe} disabled={!projectLoaded}>
+        <button className={styles.newBtn} onClick={onNewRecipe} disabled={!projectLoaded}>
+          <PlusIcon />
           <span>{t(lang, 'new_recipe')}</span>
         </button>
       </div>

@@ -1,9 +1,52 @@
-.root { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 14px; padding: 28px 32px; }
-.head { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.head h2 { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; font-family: var(--font-mono); }
-.code {
-  flex: 1; background: var(--bg-elevated); border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg); padding: 18px 22px; overflow: auto;
-  white-space: pre; color: var(--text-secondary); font-family: var(--font-mono);
-  font-size: 12px; line-height: 1.75;
+.root {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 28px 32px;
+  max-width: 1100px; width: 100%; margin: 0 auto; align-self: stretch;
 }
+
+.head {
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+
+.title {
+  font-size: 13px; font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.code {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  overflow: auto;
+  white-space: pre;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.75;
+  tab-size: 2;
+}
+
+.line { display: block; }
+
+/* ── Syntax colors ───────────────────────────────────────────────────────── */
+/* Clés JSON  */
+.tKey   { color: #79b8ff; }   /* bleu clair */
+/* Valeurs string */
+.tStr   { color: #9ecbff; }   /* bleu pâle */
+/* Nombres */
+.tNum   { color: #f8c555; }   /* jaune */
+/* true / false / null */
+.tKw    { color: #f97583; }   /* rose/rouge */
+/* Ponctuation { } [ ] , : */
+.tPunct { color: #6e8a9e; }   /* gris-bleu */
+
+/* Adaptation light mode */
+[data-theme="light"] .tKey   { color: #0055cc; }
+[data-theme="light"] .tStr   { color: #1a6d3a; }
+[data-theme="light"] .tNum   { color: #b07d00; }
+[data-theme="light"] .tKw    { color: #c0392b; }
+[data-theme="light"] .tPunct { color: #7a8a94; }

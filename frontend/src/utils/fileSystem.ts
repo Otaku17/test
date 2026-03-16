@@ -60,6 +60,12 @@ export async function reopenLastProject(): Promise<ProjectFiles | null> {
   return parseWailsData(raw);
 }
 
+export async function openProjectByPath(path: string): Promise<ProjectFiles | null> {
+  const raw: WailsProjectData = await goCall('OpenProjectPath', path);
+  if (!raw || !raw.projectName) return null;
+  return parseWailsData(raw);
+}
+
 export async function getLastProjectPath(): Promise<string> {
   return goCall('GetLastProjectPath');
 }

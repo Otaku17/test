@@ -6,8 +6,16 @@ export function CheckUpdate(arg1) {
   return window['go']['main']['App']['CheckUpdate'](arg1);
 }
 
+export function ConfirmClose(arg1) {
+  return window['go']['main']['App']['ConfirmClose'](arg1);
+}
+
 export function GetLastProjectPath() {
   return window['go']['main']['App']['GetLastProjectPath']();
+}
+
+export function GetRecentProjects() {
+  return window['go']['main']['App']['GetRecentProjects']();
 }
 
 export function GetVersion() {
@@ -16,6 +24,14 @@ export function GetVersion() {
 
 export function OpenProject() {
   return window['go']['main']['App']['OpenProject']();
+}
+
+export function OpenProjectPath(arg1) {
+  return window['go']['main']['App']['OpenProjectPath'](arg1);
+}
+
+export function RemoveRecentProject(arg1) {
+  return window['go']['main']['App']['RemoveRecentProject'](arg1);
 }
 
 export function ReopenLastProject() {
@@ -28,4 +44,8 @@ export function SaveConfig(arg1) {
 
 export function SaveCsv(arg1) {
   return window['go']['main']['App']['SaveCsv'](arg1);
+}
+
+export function SaveRecentAfterOpen(arg1) {
+  return window['go']['main']['App']['SaveRecentAfterOpen'](arg1);
 }

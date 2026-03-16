@@ -1,0 +1,124 @@
+.nav {
+  width: var(--nav-w);
+  min-width: var(--nav-w);
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+  padding: 12px 0 8px;
+}
+
+/* ── App icon button */
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0 0 4px;
+  cursor: pointer;
+  margin: 0 auto;
+  border-radius: 14px;
+  transition: opacity var(--t-base), transform var(--t-base);
+}
+.iconBtn:hover { opacity: 0.8; transform: scale(0.96); }
+.iconBtn:active { transform: scale(0.92); }
+
+.appIconImg {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Divider */
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 8px 10px;
+  flex-shrink: 0;
+}
+
+/* ── Nav items */
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 8px;
+}
+
+.spacer { flex: 1; }
+
+/* ── Bottom section */
+.bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 8px 4px;
+}
+
+/* ── Generic item */
+.item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--t-base), color var(--t-base), border-color var(--t-base);
+  width: 100%;
+  text-align: left;
+}
+.item:hover:not(:disabled) {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+.item:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.itemActive {
+  background: var(--accent-subtle) !important;
+  color: var(--accent) !important;
+  border-color: var(--accent-muted) !important;
+}
+.itemSave {
+  background: var(--green-subtle) !important;
+  color: var(--green) !important;
+  border-color: var(--green-muted) !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+
+.itemIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+.itemActive .itemIcon,
+.itemSave .itemIcon { opacity: 1; }
+.itemLabel { flex: 1; }
+
+/* ── Dot */
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: 0 0 4px var(--yellow);
+  flex-shrink: 0;
+}
+.dotSave {
+  background: var(--green);
+  box-shadow: 0 0 4px var(--green);
+}
+
+

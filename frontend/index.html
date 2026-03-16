@@ -1,38 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#5b6af0" />
-    <meta name="description" content="Recipe editor for Pokémon Studio crafting system" />
+    <meta
+      name="description"
+      content="Recipe editor for Pokémon Studio crafting system"
+    />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="CraftingED" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/pwa-192.png" />
     <title>Crafting Editor — PSDK</title>
     <script>
       // Apply saved theme before React mounts (prevents flash)
-      (function() {
+      (function () {
         var t = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', t);
       })();
     </script>
   </head>
   <body>
-    <!-- Mobile block — hidden on desktop via CSS -->
-    <div id="mobile-block">
-      <div class="mb-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <rect x="2" y="3" width="20" height="14" rx="2"/>
-          <path d="M8 21h8M12 17v4"/>
-        </svg>
-      </div>
-      <p class="mb-title">Desktop only</p>
-      <p class="mb-desc">Crafting Editor is designed for desktop use. Please open it on a computer with Chrome or Edge.</p>
-    </div>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="root" />
+    <script type="module" src="/src/main.tsx"/></script>
   </body>
 </html>
