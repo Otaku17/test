@@ -2,12 +2,12 @@
 .typeRow { display: flex; align-items: center; gap: 10px; }
 .typeLabel { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
 
-/* Simple condition node */
+/* ── Simple condition node ──────────────────────────────────────────────── */
 .simpleNode {
   background: var(--bg-overlay); border: 1px solid var(--border-default);
-  border-radius: var(--radius-md); padding: 12px 14px;
+  border-radius: var(--radius-md); padding: 10px 14px;
 }
-.condRow { display: flex; align-items: center; gap: 8px; }
+.condRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .condTag {
   font-family: var(--font-mono); font-size: 10px; font-weight: 700;
   padding: 3px 8px; border-radius: var(--radius-xs); border: 1px solid transparent;
@@ -17,34 +17,83 @@
 .ct_switch   { background:var(--cyan-subtle);   color:var(--cyan);    border-color:var(--cyan-muted); }
 .ct_variable { background:var(--yellow-subtle); color:var(--yellow);  border-color:var(--yellow-muted); }
 .ct_recipe   { background:var(--green-subtle);  color:var(--green);   border-color:var(--green-muted); }
+.ct_quest    { background:var(--cyan-subtle);   color:var(--cyan);    border-color:var(--cyan-muted); }
 .ct_operator { background:var(--purple-subtle); color:var(--purple);  border-color:var(--purple-muted); }
+.ct_not      { background: #2a0d1a; color: #f07090; border-color: #4a1a2e; }
 
 .condLabel { font-size: 11px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
 
-/* Operator node */
+/* ── NOT node ───────────────────────────────────────────────────────────── */
+.notNode {
+  background: var(--bg-raised);
+  border: 1px solid #4a1a2e;
+  border-left: 3px solid #f07090;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.notHead { display: flex; align-items: center; gap: 8px; }
+.notArrow {
+  font-size: 11px; color: #f07090; opacity: 0.7; font-weight: 600;
+}
+.notBody {
+  padding-left: 12px;
+  border-left: 2px dashed #4a1a2e;
+}
+
+/* ── Operator node ──────────────────────────────────────────────────────── */
 .opNode {
   background: var(--bg-raised); border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md); padding: 14px 16px;
+  border-radius: var(--radius-md); padding: 12px 14px;
 }
 .opHead {
   display: flex; align-items: center; gap: 8px;
-  padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border-default);
+  padding-bottom: 12px; margin-bottom: 10px; border-bottom: 1px solid var(--border-default);
 }
 .opAddBtns {
   margin-left: auto;
-  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0; flex-wrap: wrap;
 }
+.addLabel {
+  font-size: 10px; color: var(--text-muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em; margin-right: 2px;
+}
+.notBadgeSmall {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  background: #2a0d1a; color: #f07090; border: 1px solid #4a1a2e;
+  padding: 1px 5px; border-radius: var(--radius-xs); letter-spacing: 0.06em;
+}
+
+/* ── Children ───────────────────────────────────────────────────────────── */
 .opChildren {
-  border-left: 2px solid var(--border-strong); padding-left: 14px;
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column; gap: 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--border-strong);
 }
-.childRow { display: flex; align-items: center; gap: 8px; }
+.childRow { display: flex; flex-direction: column; }
+.childConnector {
+  display: flex; align-items: center; gap: 6px; padding: 3px 0;
+}
+.childConnector::before, .childConnector::after {
+  content: ''; flex: 1; height: 1px; background: var(--border-default);
+}
+.connectorLabel {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  color: var(--purple); letter-spacing: 0.08em;
+  background: var(--purple-subtle); border: 1px solid var(--purple-muted);
+  padding: 1px 7px; border-radius: var(--radius-xs);
+}
+.childInner {
+  display: flex; align-items: flex-start; gap: 6px;
+  padding: 4px 0;
+}
 
 .removeBtn {
-  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
   border-radius: var(--radius-sm); background: transparent; color: var(--text-muted);
   border: 1px solid transparent; cursor: pointer; transition: all var(--t-base); flex-shrink: 0;
+  margin-top: 2px;
 }
 .removeBtn:hover { background: var(--red-subtle); color: var(--red); border-color: var(--red-muted); }
 
-.empty { font-size: 12px; color: var(--text-muted); padding: 4px 0; font-style: italic; }
+.empty { font-size: 12px; color: var(--text-muted); padding: 6px 0; font-style: italic; }

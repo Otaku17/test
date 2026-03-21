@@ -18,8 +18,23 @@ export namespace main {
 	        this.id = source["id"];
 	    }
 	}
+	export class GameQuest {
+	    dbSymbol: string;
+	    id: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new GameQuest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dbSymbol = source["dbSymbol"];
+	        this.id = source["id"];
+	    }
+	}
 	export class ProjectData {
 	    projectName: string;
+	    projectPath: string;
 	    projectIconUrl: string;
 	    configJSON: string;
 	    items: GameItem[];
@@ -37,6 +52,7 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.projectName = source["projectName"];
+	        this.projectPath = source["projectPath"];
 	        this.projectIconUrl = source["projectIconUrl"];
 	        this.configJSON = source["configJSON"];
 	        this.items = this.convertValues(source["items"], GameItem);
@@ -46,6 +62,40 @@ export namespace main {
 	        this.hasCsv = source["hasCsv"];
 	        this.hasConfig = source["hasConfig"];
 	        this.warnings = source["warnings"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class QuestData {
+	    quests: GameQuest[];
+	    questCsvText: string;
+	    hasQuestCsv: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new QuestData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.quests = this.convertValues(source["quests"], GameQuest);
+	        this.questCsvText = source["questCsvText"];
+	        this.hasQuestCsv = source["hasQuestCsv"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

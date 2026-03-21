@@ -10,7 +10,7 @@
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import styles from './UpdatePrompt.module.css';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ───────────────────────────────────────────────────────────────────────
 type UpdateState = 'idle' | 'available' | 'downloading' | 'error';
 
 interface UpdateCtx {
@@ -23,7 +23,7 @@ interface UpdateCtx {
   dismiss: () => void;
 }
 
-// ── Context singleton ─────────────────────────────────────────────────────────
+// ── Context singleton ───────────────────────────────────────────────────────────
 const UpdateContext = createContext<UpdateCtx | null>(null);
 
 export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -49,7 +49,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({
           setState('available');
         }
       } catch {
-        /* silencieux */
+        /* silent — no network is fine */
       }
     };
     const t = setTimeout(check, 4000);
@@ -93,7 +93,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({
 
 const useUpdate = () => useContext(UpdateContext)!;
 
-// ── Bannière haut-centre (sans projet) ────────────────────────────────────────
+// ── Top-center banner (shown when no project is loaded) ────────────────────────
 export const UpdateBanner: React.FC = () => {
   const {
     state,
@@ -147,7 +147,7 @@ export const UpdateBanner: React.FC = () => {
       {state === 'error' && (
         <>
           <span className={styles.bannerIcon} style={{ color: 'var(--red)' }}>
-            ⚠
+            !
           </span>
           <div className={styles.bannerText}>
             <span className={styles.bannerTitle}>Update failed</span>
@@ -165,7 +165,7 @@ export const UpdateBanner: React.FC = () => {
   );
 };
 
-// ── Badge NavRail (avec projet) ───────────────────────────────────────────────
+// ── NavRail badge (shown when a project is loaded) ─────────────────────────────
 export const UpdateNavBadge: React.FC = () => {
   const { state, latestVersion, dismissed, errorMsg, install, dismiss } =
     useUpdate();
@@ -201,10 +201,10 @@ export const UpdateNavBadge: React.FC = () => {
           {state === 'available' && (
             <>
               <div className={styles.popTitle}>
-                🆕 v{latestVersion} available
+                 v{latestVersion} available
               </div>
               <button className={styles.popBtn} onClick={install}>
-                ⬇ Install &amp; restart
+                Install &amp; restart
               </button>
               <button
                 className={styles.popDismiss}
@@ -228,7 +228,7 @@ export const UpdateNavBadge: React.FC = () => {
           )}
           {state === 'error' && (
             <>
-              <div className={styles.popTitle}>⚠ Failed</div>
+              <div className={styles.popTitle}>! Failed</div>
               {errorMsg && <div className={styles.popHint}>{errorMsg}</div>}
               <button className={styles.popBtn} onClick={install}>
                 Retry
@@ -250,12 +250,12 @@ export const UpdateNavBadge: React.FC = () => {
   );
 };
 
-// ── Stub conservé pour compatibilité ─────────────────────────────────────────
+// ── Compatibility stub ──────────────────────────────────────────────────────────
 export function useInstallPrompt() {
   return { canInstall: false, install: async () => {} };
 }
 
-// ── Ancien composant UpdatePrompt — redirige selon projectLoaded ──────────────
+// ── Legacy UpdatePrompt component — redirects based on projectLoaded ───────────
 export const UpdatePrompt: React.FC<{ projectLoaded?: boolean }> = ({
   projectLoaded,
 }) => {

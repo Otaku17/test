@@ -26,6 +26,10 @@ export function GetLastProjectPath() {
   return window['go']['main']['App']['GetLastProjectPath']();
 }
 
+export function GetQuests() {
+  return window['go']['main']['App']['GetQuests']();
+}
+
 export function GetRecentProjects() {
   return window['go']['main']['App']['GetRecentProjects']();
 }
@@ -60,8 +64,4 @@ export function SaveConfig(arg1) {
 
 export function SaveCsv(arg1) {
   return window['go']['main']['App']['SaveCsv'](arg1);
-}
-
-export function SaveRecentAfterOpen(arg1) {
-  return window['go']['main']['App']['SaveRecentAfterOpen'](arg1);
 }

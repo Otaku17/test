@@ -14,6 +14,8 @@ export function GetCurrentOS():Promise<string>;
 
 export function GetLastProjectPath():Promise<string>;
 
+export function GetQuests():Promise<main.QuestData>;
+
 export function GetRecentProjects():Promise<Array<main.RecentProject>>;
 
 export function GetVersion():Promise<string>;
@@ -31,5 +33,3 @@ export function ReopenLastProject():Promise<main.ProjectData>;
 export function SaveConfig(arg1:string):Promise<void>;
 
 export function SaveCsv(arg1:string):Promise<void>;
-
-export function SaveRecentAfterOpen(arg1:string):Promise<void>;

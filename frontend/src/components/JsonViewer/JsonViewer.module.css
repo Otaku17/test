@@ -1,52 +1,110 @@
 .root {
   flex: 1; overflow: hidden;
-  display: flex; flex-direction: column; gap: 14px;
-  padding: 28px 32px;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 24px 28px;
   max-width: 1100px; width: 100%; margin: 0 auto; align-self: stretch;
 }
 
+/* ── Header ──────────────────────────────────────────────────────────────── */
 .head {
   display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+}
+.headLeft { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.headRight { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.fileIcon {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-subtle); border: 1px solid var(--accent-muted);
+  border-radius: var(--radius-sm); color: var(--accent); flex-shrink: 0;
 }
 
+.headMeta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
 .title {
-  font-size: 13px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   font-family: var(--font-mono);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   letter-spacing: -0.01em;
+}
+
+.pills { display: flex; align-items: center; gap: 5px; }
+.pill {
+  font-size: 10px; color: var(--text-secondary);
+  font-family: var(--font-mono); letter-spacing: -0.01em;
+}
+.pillDot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: var(--border-strong); flex-shrink: 0;
+}
+
+.charCount {
+  font-size: 11px; color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Code panel ──────────────────────────────────────────────────────────── */
+.codeWrap {
+  flex: 1; overflow: hidden;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex; flex-direction: column;
 }
 
 .code {
   flex: 1;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 18px 22px;
   overflow: auto;
+  padding: 16px 0;
   white-space: pre;
   font-family: var(--font-mono);
   font-size: 12px;
-  line-height: 1.75;
+  line-height: 1.7;
   tab-size: 2;
+  margin: 0;
 }
 
-.line { display: block; }
+/* ── Lines with numbers ──────────────────────────────────────────────────── */
+.line {
+  display: flex;
+  align-items: baseline;
+}
+.line:hover { background: var(--bg-overlay); }
+
+.lineNum {
+  display: inline-block;
+  min-width: 44px;
+  padding: 0 12px 0 16px;
+  text-align: right;
+  color: var(--text-disabled);
+  font-size: 11px;
+  user-select: none;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  margin-right: 16px;
+}
+
+.lineContent { flex: 1; }
 
 /* ── Syntax colors ───────────────────────────────────────────────────────── */
-/* Clés JSON  */
-.tKey   { color: #79b8ff; }   /* bleu clair */
-/* Valeurs string */
-.tStr   { color: #9ecbff; }   /* bleu pâle */
-/* Nombres */
-.tNum   { color: #f8c555; }   /* jaune */
-/* true / false / null */
-.tKw    { color: #f97583; }   /* rose/rouge */
-/* Ponctuation { } [ ] , : */
-.tPunct { color: #6e8a9e; }   /* gris-bleu */
+.tKey        { color: #79b8ff; }
+.tStr        { color: #9ecbff; }
+.tNum        { color: #f8c555; }
+.tKw         { color: #f97583; }
+.tPunct      { color: #6e8a9e; }
+.tBraceOpen  { color: #c792ea; font-weight: 600; }
+.tBraceClose { color: #c792ea; font-weight: 600; }
 
-/* Adaptation light mode */
-[data-theme="light"] .tKey   { color: #0055cc; }
-[data-theme="light"] .tStr   { color: #1a6d3a; }
-[data-theme="light"] .tNum   { color: #b07d00; }
-[data-theme="light"] .tKw    { color: #c0392b; }
-[data-theme="light"] .tPunct { color: #7a8a94; }
+/* Light mode */
+[data-theme="light"] .tKey        { color: #0055cc; }
+[data-theme="light"] .tStr        { color: #1a6d3a; }
+[data-theme="light"] .tNum        { color: #b07d00; }
+[data-theme="light"] .tKw         { color: #c0392b; }
+[data-theme="light"] .tPunct      { color: #7a8a94; }
+[data-theme="light"] .tBraceOpen  { color: #7c3aed; }
+[data-theme="light"] .tBraceClose { color: #7c3aed; }
+[data-theme="light"] .lineNum     { color: #b8bdc9; }

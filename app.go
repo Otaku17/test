@@ -12,40 +12,40 @@ import (
 	"path/filepath"
 	goruntime "runtime"
 	"strings"
+	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// App struct — une instance par session
+// App holds per-session state for the Wails application.
 type App struct {
 	ctx            context.Context
 	projectPath    string
-	closeConfirmed bool // true = l'utilisateur a confirmé la fermeture
+	closeConfirmed bool // set to true once the user confirms close in the unsaved-changes dialog
 }
 
-func NewApp() *App {
-	return &App{}
-}
+func NewApp() *App { return &App{} }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	runtime.WindowExecJS(a.ctx, "window.__WAILS__ = true;")
-	// Titre neutre au lancement — sera mis à jour quand un projet est chargé
 	runtime.WindowSetTitle(a.ctx, "Crafting Editor")
 }
 
 func (a *App) shutdown(ctx context.Context) {}
 
-// beforeClose — si déjà confirmé, autoriser ; sinon émettre l'event et bloquer
+// beforeClose blocks the window close event and emits "app:before-close" so
+// the frontend can prompt for unsaved changes.
 func (a *App) beforeClose(ctx context.Context) bool {
 	if a.closeConfirmed {
-		return false // autoriser la fermeture
+		return false // allow close
 	}
 	runtime.EventsEmit(ctx, "app:before-close")
-	return true // bloquer — le frontend va décider
+	return true // block — frontend decides
 }
 
-// ConfirmClose — appelé par le frontend : true = fermer, false = annuler
+// ConfirmClose is called by the frontend after the user resolves the unsaved-
+// changes dialog. Pass true to quit, false to cancel.
 func (a *App) ConfirmClose(shouldClose bool) {
 	if shouldClose {
 		a.closeConfirmed = true
@@ -53,8 +53,9 @@ func (a *App) ConfirmClose(shouldClose bool) {
 	}
 }
 
-// ─── Types retournés au frontend ─────────────────────────────────────────────
+// ── Data types returned to the frontend ───────────────────────────────────────
 
+// GameItem represents a Pokémon SDK item (dbSymbol, display name, icon path).
 type GameItem struct {
 	DbSymbol string `json:"dbSymbol"`
 	Name     string `json:"name,omitempty"`
@@ -62,33 +63,34 @@ type GameItem struct {
 	ID       int    `json:"id,omitempty"`
 }
 
+// ProjectData is the payload returned by OpenProject / OpenProjectPath.
 type ProjectData struct {
 	ProjectName string            `json:"projectName"`
-	ProjectIcon string            `json:"projectIconUrl"` // base64 data URL ou ""
-	ConfigJSON  string            `json:"configJSON"`     // contenu brut du JSON
+	ProjectPath string            `json:"projectPath"`
+	ProjectIcon string            `json:"projectIconUrl"` // base64 data URL or ""
+	ConfigJSON  string            `json:"configJSON"`     // raw crafting_config.json content
 	Items       []GameItem        `json:"items"`
 	ItemIcons   map[string]string `json:"itemIcons"` // dbSymbol → base64 data URL
-	ItemNames   map[string]string `json:"itemNames"` // dbSymbol → display name
-	CsvText     string            `json:"csvText"`   // contenu brut du CSV 140000
+	ItemNames   map[string]string `json:"itemNames"` // dbSymbol → display name (from 100012.csv)
+	CsvText     string            `json:"csvText"`   // raw 140000.csv content
 	HasCsv      bool              `json:"hasCsv"`
 	HasConfig   bool              `json:"hasConfig"`
 	Warnings    []string          `json:"warnings"`
 }
 
-// ─── OpenProject — dialogue natif + lecture complète du dossier ──────────────
+// ── Project opening ───────────────────────────────────────────────────────────
 
+// OpenProject shows a native directory picker and loads the selected project.
 func (a *App) OpenProject() (*ProjectData, error) {
 	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Select your Pokémon SDK project folder",
 	})
 	if err != nil || dir == "" {
-		return nil, nil // annulé
+		return nil, nil // cancelled
 	}
-
 	a.projectPath = dir
 	runtime.WindowSetTitle(a.ctx, "Crafting Editor — "+filepath.Base(dir))
 	a.saveLastProjectPath(dir)
-
 	data, err := a.loadProject(dir)
 	if err == nil && data != nil {
 		a.saveRecentProject(dir, data.ProjectIcon)
@@ -96,7 +98,7 @@ func (a *App) OpenProject() (*ProjectData, error) {
 	return data, err
 }
 
-// ReopenLastProject — réouvre le dernier projet sans dialogue
+// ReopenLastProject reopens the most recently used project without a dialog.
 func (a *App) ReopenLastProject() (*ProjectData, error) {
 	last := a.loadLastProjectPath()
 	if last == "" {
@@ -110,22 +112,45 @@ func (a *App) ReopenLastProject() (*ProjectData, error) {
 	return a.loadProject(last)
 }
 
-// GetLastProjectPath — retourne le chemin du dernier projet (pour l'afficher dans l'UI)
+// GetLastProjectPath returns the path of the last opened project (for the UI).
 func (a *App) GetLastProjectPath() string {
 	return a.loadLastProjectPath()
 }
 
-// ─── loadProject — lecture complète du dossier projet ────────────────────────
+// OpenProjectPath opens a project from a known path (used by the dashboard).
+func (a *App) OpenProjectPath(path string) (*ProjectData, error) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, fmt.Errorf("project folder not found: %s", path)
+	}
+	a.projectPath = path
+	runtime.WindowSetTitle(a.ctx, "Crafting Editor — "+filepath.Base(path))
+	a.saveLastProjectPath(path)
+	data, err := a.loadProject(path)
+	if err != nil {
+		return nil, err
+	}
+	icon := ""
+	if data != nil {
+		icon = data.ProjectIcon
+	}
+	a.saveRecentProject(path, icon)
+	return data, nil
+}
 
+// ── Project loading ───────────────────────────────────────────────────────────
+
+// loadProject reads all relevant files from a project directory and returns
+// a ProjectData payload ready for the frontend.
 func (a *App) loadProject(dir string) (*ProjectData, error) {
 	data := &ProjectData{
 		ProjectName: filepath.Base(dir),
+		ProjectPath: dir,
 		ItemIcons:   map[string]string{},
 		ItemNames:   map[string]string{},
 		Warnings:    []string{},
 	}
 
-	// .studio → nom du projet
+	// Read project name from the .studio file
 	entries, _ := os.ReadDir(dir)
 	for _, e := range entries {
 		if !e.IsDir() && strings.HasSuffix(e.Name(), ".studio") {
@@ -142,12 +167,12 @@ func (a *App) loadProject(dir string) (*ProjectData, error) {
 		}
 	}
 
-	// project_icon
+	// Project icon (graphics/icons/game.*)
 	for _, ext := range []string{"png", "PNG", "jpg", "JPG", "jpeg", "JPEG", "gif", "webp"} {
 		path := filepath.Join(dir, "graphics", "icons", "game."+ext)
 		if raw, err := os.ReadFile(path); err == nil {
 			mime := "image/" + strings.ToLower(ext)
-			if ext == "jpg" || ext == "JPG" || ext == "JPEG" || ext == "jpeg" {
+			if strings.ToLower(ext) == "jpg" || strings.ToLower(ext) == "jpeg" {
 				mime = "image/jpeg"
 			}
 			data.ProjectIcon = "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(raw)
@@ -161,16 +186,10 @@ func (a *App) loadProject(dir string) (*ProjectData, error) {
 		data.ConfigJSON = string(raw)
 		data.HasConfig = true
 	} else {
-		// Vérifier si Data/configs/ existe (plugin non installé)
-		configsDir := filepath.Join(dir, "Data", "configs")
-		if _, err2 := os.Stat(configsDir); err2 == nil {
-			data.Warnings = append(data.Warnings, "plugin_missing")
-		} else {
-			data.Warnings = append(data.Warnings, "plugin_missing")
-		}
+		data.Warnings = append(data.Warnings, "plugin_missing")
 	}
 
-	// Items JSON
+	// Items — Data/Studio/items/*.json (one file per item)
 	itemsDir := filepath.Join(dir, "Data", "Studio", "items")
 	if itemEntries, err := os.ReadDir(itemsDir); err == nil {
 		for _, e := range itemEntries {
@@ -181,13 +200,12 @@ func (a *App) loadProject(dir string) (*ProjectData, error) {
 			if err != nil {
 				continue
 			}
-			// Essayer objet unique
+			// Try single-object format first, then array
 			var item GameItem
 			if json.Unmarshal(raw, &item) == nil && item.DbSymbol != "" {
 				data.Items = append(data.Items, item)
 				continue
 			}
-			// Essayer tableau
 			var items []GameItem
 			if json.Unmarshal(raw, &items) == nil {
 				for _, it := range items {
@@ -201,33 +219,31 @@ func (a *App) loadProject(dir string) (*ProjectData, error) {
 		data.Warnings = append(data.Warnings, "items: "+err.Error())
 	}
 
-	// Item icons
+	// Item icons — graphics/icons/<icon>.png, fallback to return.png
 	iconsDir := filepath.Join(dir, "graphics", "icons")
 	fallbackURL := ""
 	if raw, err := os.ReadFile(filepath.Join(iconsDir, "return.png")); err == nil {
 		fallbackURL = "data:image/png;base64," + base64.StdEncoding.EncodeToString(raw)
 	}
 	for _, item := range data.Items {
-		iconFile := item.Icon + ".png"
-		if item.Icon == "" {
-			iconFile = ""
-		}
 		url := fallbackURL
-		if iconFile != "" {
-			if raw, err := os.ReadFile(filepath.Join(iconsDir, iconFile)); err == nil {
+		if item.Icon != "" {
+			if raw, err := os.ReadFile(filepath.Join(iconsDir, item.Icon+".png")); err == nil {
 				url = "data:image/png;base64," + base64.StdEncoding.EncodeToString(raw)
 			}
 		}
 		data.ItemIcons[item.DbSymbol] = url
 	}
 
-	// CSV 140000 — item names from 100012.csv
-	csvPaths := [][]string{
+	// CSV files — try Data/Text/Dialogs first, then Data/Dialogs
+	csvDirs := [][]string{
 		{"Data", "Text", "Dialogs"},
 		{"Data", "Dialogs"},
 	}
-	for _, parts := range csvPaths {
+	for _, parts := range csvDirs {
 		csvDir := filepath.Join(append([]string{dir}, parts...)...)
+
+		// 140000.csv — category translations
 		csvPath := filepath.Join(csvDir, "140000.csv")
 		if raw, err := os.ReadFile(csvPath); err == nil {
 			data.CsvText = string(raw)
@@ -236,16 +252,15 @@ func (a *App) loadProject(dir string) (*ProjectData, error) {
 			data.Warnings = append(data.Warnings, "csv_missing")
 		}
 
-		// Item names from 100012.csv
+		// 100012.csv — item display names (EN column)
 		namesPath := filepath.Join(csvDir, "100012.csv")
 		if raw, err := os.ReadFile(namesPath); err == nil {
 			lines := strings.Split(string(raw), "\n")
 			for _, item := range data.Items {
-				id := item.ID
-				if id < 0 {
+				if item.ID < 0 {
 					continue
 				}
-				lineIdx := id + 1
+				lineIdx := item.ID + 1
 				if lineIdx < len(lines) {
 					cols := strings.SplitN(lines[lineIdx], ",", 2)
 					if len(cols) > 0 {
@@ -263,9 +278,68 @@ func (a *App) loadProject(dir string) (*ProjectData, error) {
 	return data, nil
 }
 
-// ─── Save ─────────────────────────────────────────────────────────────────────
+// ── Quests ────────────────────────────────────────────────────────────────────
 
-// SaveConfig — écrit crafting_config.json dans le projet ouvert
+// GameQuest holds the fields we need from a quest JSON file.
+type GameQuest struct {
+	DbSymbol string `json:"dbSymbol"`
+	ID       int    `json:"id"`
+}
+
+// QuestData is the payload returned by GetQuests.
+type QuestData struct {
+	Quests       []GameQuest `json:"quests"`
+	QuestCsvText string      `json:"questCsvText"`
+	HasQuestCsv  bool        `json:"hasQuestCsv"`
+}
+
+// GetQuests reads Data/Studio/quests/*.json and Data/Text/Dialogs/100045.csv
+// from the currently open project. Called by the frontend after OpenProject.
+func (a *App) GetQuests() (*QuestData, error) {
+	if a.projectPath == "" {
+		return nil, fmt.Errorf("no project open")
+	}
+
+	data := &QuestData{}
+
+	// Quests — one JSON file per quest
+	questsDir := filepath.Join(a.projectPath, "Data", "Studio", "quests")
+	if entries, err := os.ReadDir(questsDir); err == nil {
+		for _, e := range entries {
+			if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+				continue
+			}
+			raw, err := os.ReadFile(filepath.Join(questsDir, e.Name()))
+			if err != nil {
+				continue
+			}
+			var q GameQuest
+			if json.Unmarshal(raw, &q) == nil && q.DbSymbol != "" {
+				data.Quests = append(data.Quests, q)
+			}
+		}
+	}
+
+	// 100045.csv — quest name translations (same structure as 140000.csv)
+	csvDirs := [][]string{
+		{"Data", "Text", "Dialogs"},
+		{"Data", "Dialogs"},
+	}
+	for _, parts := range csvDirs {
+		csvPath := filepath.Join(append([]string{a.projectPath}, append(parts, "100045.csv")...)...)
+		if raw, err := os.ReadFile(csvPath); err == nil {
+			data.QuestCsvText = string(raw)
+			data.HasQuestCsv = true
+			break
+		}
+	}
+
+	return data, nil
+}
+
+// ── Save ─────────────────────────────────────────────────────────────────────
+
+// SaveConfig writes crafting_config.json to the open project.
 func (a *App) SaveConfig(jsonContent string) error {
 	if a.projectPath == "" {
 		return fmt.Errorf("no project open")
@@ -274,7 +348,7 @@ func (a *App) SaveConfig(jsonContent string) error {
 	return os.WriteFile(path, []byte(jsonContent), 0644)
 }
 
-// SaveCsv — écrit 140000.csv
+// SaveCsv writes 140000.csv to the open project.
 func (a *App) SaveCsv(content string) error {
 	if a.projectPath == "" {
 		return fmt.Errorf("no project open")
@@ -289,7 +363,7 @@ func (a *App) SaveCsv(content string) error {
 	return fmt.Errorf("140000.csv not found")
 }
 
-// ─── Persistance dernier projet ───────────────────────────────────────────────
+// ── Recent projects persistence ───────────────────────────────────────────────
 
 func (a *App) lastProjectFile() string {
 	dir, _ := os.UserConfigDir()
@@ -310,161 +384,12 @@ func (a *App) loadLastProjectPath() string {
 	return strings.TrimSpace(string(raw))
 }
 
-// ─── Version & Auto-update ────────────────────────────────────────────────────
-
-// AppVersion — incrémenter à chaque release (doit correspondre au tag Git sans "v")
-const AppVersion = "0.1.6"
-
-// GitHub repo owner/name pour les releases
-const GitHubRepo = "Otaku17/test"
-
-// GetVersion retourne la version actuelle
-func (a *App) GetVersion() string {
-	return AppVersion
-}
-
-// UpdateInfo résultat du check de MAJ
-type UpdateInfo struct {
-	CurrentVersion string `json:"currentVersion"`
-	LatestVersion  string `json:"latestVersion"`
-	HasUpdate      bool   `json:"hasUpdate"`
-	AssetURL       string `json:"assetURL"`  // URL directe de l'asset pour cet OS
-	AssetName      string `json:"assetName"` // Nom du fichier à télécharger
-}
-
-// CheckUpdate interroge l'API GitHub Releases pour détecter une nouvelle version.
-// Retourne l'URL de l'asset correspondant à l'OS courant.
-func (a *App) CheckUpdate() (*UpdateInfo, error) {
-	info := &UpdateInfo{
-		CurrentVersion: AppVersion,
-		LatestVersion:  AppVersion,
-		HasUpdate:      false,
-	}
-
-	client := &http.Client{Timeout: 10 * 1_000_000_000} // 10s
-	apiURL := "https://api.github.com/repos/" + GitHubRepo + "/releases/latest"
-
-	req, err := http.NewRequest("GET", apiURL, nil)
-	if err != nil {
-		return info, nil
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "CraftingEditor/"+AppVersion)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return info, nil // silencieux si pas de réseau
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return info, nil
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return info, nil
-	}
-
-	var release struct {
-		TagName string `json:"tag_name"`
-		Assets  []struct {
-			Name               string `json:"name"`
-			BrowserDownloadURL string `json:"browser_download_url"`
-		} `json:"assets"`
-	}
-	if err := json.Unmarshal(body, &release); err != nil {
-		return info, nil
-	}
-
-	// Normaliser la version (enlever le "v" préfixe)
-	latestVersion := strings.TrimPrefix(release.TagName, "v")
-	currentVersion := strings.TrimPrefix(AppVersion, "v")
-
-	info.LatestVersion = latestVersion
-	info.HasUpdate = latestVersion != currentVersion && latestVersion != ""
-
-	if info.HasUpdate {
-		// Choisir l'asset selon l'OS courant
-		assetName, assetURL := pickAssetForCurrentOS(release.Assets)
-		info.AssetName = assetName
-		info.AssetURL = assetURL
-	}
-
-	return info, nil
-}
-
-// pickAssetForCurrentOS sélectionne le bon asset selon runtime.GOOS
-func pickAssetForCurrentOS(assets []struct {
-	Name               string `json:"name"`
-	BrowserDownloadURL string `json:"browser_download_url"`
-}) (string, string) {
-	goos := getRuntimeOS()
-	for _, asset := range assets {
-		name := strings.ToLower(asset.Name)
-		switch goos {
-		case "windows":
-			if strings.HasSuffix(name, ".exe") {
-				return asset.Name, asset.BrowserDownloadURL
-			}
-		case "darwin":
-			if strings.HasSuffix(name, ".dmg") {
-				return asset.Name, asset.BrowserDownloadURL
-			}
-		case "linux":
-			if strings.HasSuffix(name, ".appimage") {
-				return asset.Name, asset.BrowserDownloadURL
-			}
-		}
-	}
-	// Fallback : premier asset disponible
-	if len(assets) > 0 {
-		return assets[0].Name, assets[0].BrowserDownloadURL
-	}
-	return "", ""
-}
-
-// DownloadAndInstallUpdate télécharge l'asset et lance l'installation,
-// puis quitte l'application.
-func (a *App) DownloadAndInstallUpdate(assetURL string, assetName string) error {
-	// Dossier temporaire
-	tmpDir := os.TempDir()
-	destPath := filepath.Join(tmpDir, assetName)
-
-	client := &http.Client{Timeout: 5 * 60 * 1_000_000_000} // 5 min
-	resp, err := client.Get(assetURL)
-	if err != nil {
-		return fmt.Errorf("download failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	f, err := os.Create(destPath)
-	if err != nil {
-		return fmt.Errorf("cannot create temp file: %w", err)
-	}
-	_, err = io.Copy(f, resp.Body)
-	f.Close()
-	if err != nil {
-		return fmt.Errorf("write failed: %w", err)
-	}
-
-	// Lancer l'installation selon l'OS
-	if err := launchInstaller(destPath); err != nil {
-		return fmt.Errorf("launch installer failed: %w", err)
-	}
-
-	// Quitter l'app pour laisser l'installer prendre la main
-	runtime.Quit(a.ctx)
-	return nil
-}
-
-// ─── Projets récents ──────────────────────────────────────────────────────────
-
+// RecentProject holds the data displayed on a dashboard card.
 type RecentProject struct {
 	Name     string `json:"name"`
 	Path     string `json:"path"`
-	Icon     string `json:"icon"`     // base64 data URL ou ""
-	OpenedAt string `json:"openedAt"` // ISO timestamp
+	Icon     string `json:"icon"`     // base64 data URL or ""
+	OpenedAt string `json:"openedAt"` // Unix timestamp (ms) as string
 }
 
 func (a *App) recentProjectsFile() string {
@@ -486,9 +411,8 @@ func (a *App) GetRecentProjects() []RecentProject {
 
 func (a *App) saveRecentProject(dir string, icon string) {
 	projects := a.GetRecentProjects()
-	name := filepath.Base(dir)
 
-	// Supprimer si déjà présent
+	// Remove existing entry for this path
 	filtered := projects[:0]
 	for _, p := range projects {
 		if p.Path != dir {
@@ -496,16 +420,16 @@ func (a *App) saveRecentProject(dir string, icon string) {
 		}
 	}
 
-	// Ajouter en tête
+	// Prepend the new entry
 	entry := RecentProject{
-		Name:     name,
+		Name:     filepath.Base(dir),
 		Path:     dir,
 		Icon:     icon,
-		OpenedAt: fmt.Sprintf("%d", os.Getpid()), // approximation — on utilisera le vrai timestamp en JS
+		OpenedAt: fmt.Sprintf("%d", time.Now().UnixMilli()),
 	}
 	projects = append([]RecentProject{entry}, filtered...)
 
-	// Garder max 4
+	// Keep at most 4 recent projects
 	if len(projects) > 4 {
 		projects = projects[:4]
 	}
@@ -516,27 +440,7 @@ func (a *App) saveRecentProject(dir string, icon string) {
 	os.WriteFile(f, data, 0644)
 }
 
-// OpenProjectPath — ouvre un projet depuis un chemin connu (dashboard)
-func (a *App) OpenProjectPath(path string) (*ProjectData, error) {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, fmt.Errorf("project folder not found: %s", path)
-	}
-	a.projectPath = path
-	runtime.WindowSetTitle(a.ctx, "Crafting Editor — "+filepath.Base(path))
-	a.saveLastProjectPath(path)
-	data, err := a.loadProject(path)
-	if err != nil {
-		return nil, err
-	}
-	icon := ""
-	if data != nil {
-		icon = data.ProjectIcon
-	}
-	a.saveRecentProject(path, icon)
-	return data, nil
-}
-
-// RemoveRecentProject — supprime un projet des récents
+// RemoveRecentProject removes a project from the recent list.
 func (a *App) RemoveRecentProject(path string) {
 	projects := a.GetRecentProjects()
 	filtered := projects[:0]
@@ -549,17 +453,17 @@ func (a *App) RemoveRecentProject(path string) {
 	os.WriteFile(a.recentProjectsFile(), data, 0644)
 }
 
-// RedefineRecentProject — ouvre un dialogue pour choisir un nouveau dossier,
-// remplace l'entrée oldPath dans les recents et ouvre le projet.
+// RedefineRecentProject opens a directory picker to relocate a missing project,
+// replaces the old entry in the recent list, and loads the project.
 func (a *App) RedefineRecentProject(oldPath string) (*ProjectData, error) {
 	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Select new location for this project",
 	})
 	if err != nil || dir == "" {
-		return nil, nil // annulé
+		return nil, nil // cancelled
 	}
 
-	// Supprimer l'ancienne entrée
+	// Remove the old entry before adding the new path
 	projects := a.GetRecentProjects()
 	filtered := projects[:0]
 	for _, p := range projects {
@@ -567,12 +471,10 @@ func (a *App) RedefineRecentProject(oldPath string) (*ProjectData, error) {
 			filtered = append(filtered, p)
 		}
 	}
-	// Sauvegarder sans l'ancienne
 	if data, err2 := json.MarshalIndent(filtered, "", "  "); err2 == nil {
 		os.WriteFile(a.recentProjectsFile(), data, 0644)
 	}
 
-	// Ouvrir le nouveau chemin (va l'ajouter en tête des recents)
 	a.projectPath = dir
 	runtime.WindowSetTitle(a.ctx, "Crafting Editor — "+filepath.Base(dir))
 	a.saveLastProjectPath(dir)
@@ -583,15 +485,8 @@ func (a *App) RedefineRecentProject(oldPath string) (*ProjectData, error) {
 	return projectData, err
 }
 
-// SaveRecentAfterOpen — appelé par le frontend après openProject() pour sauvegarder l'icône
-func (a *App) SaveRecentAfterOpen(icon string) {
-	if a.projectPath != "" {
-		a.saveRecentProject(a.projectPath, icon)
-	}
-}
-
-// CheckRecentPaths — vérifie l'existence de chaque dossier dans les recents.
-// Retourne la liste des paths invalides.
+// CheckRecentPaths verifies that each recent project folder still exists.
+// Returns the list of paths that no longer exist on disk.
 func (a *App) CheckRecentPaths() []string {
 	projects := a.GetRecentProjects()
 	var invalid []string
@@ -606,39 +501,147 @@ func (a *App) CheckRecentPaths() []string {
 	return invalid
 }
 
-// ─── Helpers OS ───────────────────────────────────────────────────────────────
+// ── Auto-update ───────────────────────────────────────────────────────────────
 
-// getRuntimeOS retourne "windows", "darwin" ou "linux"
-func getRuntimeOS() string {
-	return goruntime.GOOS
+// AppVersion must match the Git release tag (without the "v" prefix).
+const AppVersion = "0.1.6"
+
+// GitHubRepo is the "owner/name" used to query the GitHub Releases API.
+const GitHubRepo = "Otaku17/test"
+
+// GetVersion returns the current application version.
+func (a *App) GetVersion() string { return AppVersion }
+
+// UpdateInfo is returned by CheckUpdate and consumed by the frontend.
+type UpdateInfo struct {
+	CurrentVersion string `json:"currentVersion"`
+	LatestVersion  string `json:"latestVersion"`
+	HasUpdate      bool   `json:"hasUpdate"`
+	AssetURL       string `json:"assetURL"`  // direct download URL for this OS
+	AssetName      string `json:"assetName"` // filename of the asset
 }
 
-// GetCurrentOS expose l'OS courant au frontend
-func (a *App) GetCurrentOS() string {
-	return goruntime.GOOS
+// CheckUpdate queries the GitHub Releases API to detect a newer version.
+// Returns silently on network errors.
+func (a *App) CheckUpdate() (*UpdateInfo, error) {
+	info := &UpdateInfo{CurrentVersion: AppVersion, LatestVersion: AppVersion}
+
+	client := &http.Client{Timeout: 10 * 1_000_000_000} // 10 s
+	req, err := http.NewRequest("GET", "https://api.github.com/repos/"+GitHubRepo+"/releases/latest", nil)
+	if err != nil {
+		return info, nil
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "CraftingEditor/"+AppVersion)
+
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		return info, nil
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return info, nil
+	}
+
+	var release struct {
+		TagName string `json:"tag_name"`
+		Assets  []struct {
+			Name               string `json:"name"`
+			BrowserDownloadURL string `json:"browser_download_url"`
+		} `json:"assets"`
+	}
+	if err := json.Unmarshal(body, &release); err != nil {
+		return info, nil
+	}
+
+	latest := strings.TrimPrefix(release.TagName, "v")
+	current := strings.TrimPrefix(AppVersion, "v")
+	info.LatestVersion = latest
+	info.HasUpdate = latest != current && latest != ""
+
+	if info.HasUpdate {
+		info.AssetName, info.AssetURL = pickAssetForCurrentOS(release.Assets)
+	}
+	return info, nil
 }
 
-// launchInstaller ouvre l'installeur selon l'OS
+func pickAssetForCurrentOS(assets []struct {
+	Name               string `json:"name"`
+	BrowserDownloadURL string `json:"browser_download_url"`
+}) (string, string) {
+	goos := goruntime.GOOS
+	for _, asset := range assets {
+		name := strings.ToLower(asset.Name)
+		switch goos {
+		case "windows":
+			if strings.HasSuffix(name, ".exe") {
+				return asset.Name, asset.BrowserDownloadURL
+			}
+		case "darwin":
+			if strings.HasSuffix(name, ".dmg") {
+				return asset.Name, asset.BrowserDownloadURL
+			}
+		case "linux":
+			if strings.HasSuffix(name, ".appimage") {
+				return asset.Name, asset.BrowserDownloadURL
+			}
+		}
+	}
+	if len(assets) > 0 {
+		return assets[0].Name, assets[0].BrowserDownloadURL
+	}
+	return "", ""
+}
+
+// DownloadAndInstallUpdate downloads the given asset and launches the installer,
+// then quits the application.
+func (a *App) DownloadAndInstallUpdate(assetURL string, assetName string) error {
+	destPath := filepath.Join(os.TempDir(), assetName)
+
+	client := &http.Client{Timeout: 5 * 60 * 1_000_000_000} // 5 min
+	resp, err := client.Get(assetURL)
+	if err != nil {
+		return fmt.Errorf("download failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	f, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("cannot create temp file: %w", err)
+	}
+	_, err = io.Copy(f, resp.Body)
+	f.Close()
+	if err != nil {
+		return fmt.Errorf("write failed: %w", err)
+	}
+
+	if err := launchInstaller(destPath); err != nil {
+		return fmt.Errorf("launch installer failed: %w", err)
+	}
+	runtime.Quit(a.ctx)
+	return nil
+}
+
+// ── OS helpers ────────────────────────────────────────────────────────────────
+
+// GetCurrentOS exposes runtime.GOOS to the frontend.
+func (a *App) GetCurrentOS() string { return goruntime.GOOS }
+
 func launchInstaller(path string) error {
 	switch goruntime.GOOS {
 	case "windows":
-		// Lancer l'installeur .exe directement
 		cmd := exec.Command(path)
 		cmd.SysProcAttr = getSysProcAttr()
 		return cmd.Start()
-
 	case "darwin":
-		// Ouvrir le .dmg avec Finder/hdiutil
-		cmd := exec.Command("open", path)
-		return cmd.Start()
-
+		return exec.Command("open", path).Start()
 	case "linux":
-		// Rendre l'AppImage exécutable et le lancer
 		if err := os.Chmod(path, 0755); err != nil {
 			return err
 		}
-		cmd := exec.Command(path)
-		return cmd.Start()
+		return exec.Command(path).Start()
 	}
 	return fmt.Errorf("unsupported OS: %s", goruntime.GOOS)
 }

@@ -1,8 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store';
 import { t } from '../../utils/i18n';
-import { Badge, catVariant } from '../layout/Badge';
+import { getCatColorVars } from '../../utils/catColors';
 import styles from './Sidebar.module.css';
+
+function ColorBadge({ catKey }: { catKey: string }) {
+  const [vars, setVars] = useState(() => getCatColorVars(catKey));
+  useEffect(() => {
+    setVars(getCatColorVars(catKey));
+    const h = (e: Event) => {
+      if ((e as CustomEvent).detail?.key === catKey) setVars(getCatColorVars(catKey));
+    };
+    window.addEventListener('catColorChanged', h);
+    return () => window.removeEventListener('catColorChanged', h);
+  }, [catKey]);
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+      letterSpacing: '0.05em', textTransform: 'uppercase',
+      padding: '2px 7px', borderRadius: 'var(--radius-xs)',
+      border: `1px solid ${vars.border}`, background: vars.bg, color: vars.text,
+      whiteSpace: 'nowrap', flexShrink: 0,
+    }}>{catKey}</span>
+  );
+}
 
 const SearchIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -32,11 +54,11 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ onNewRecipe }) => {
   const {
-    lang, config, configHandle, projectName,
+    lang, config, projectName,
     currentKey, dirtyKeys, discardRecipe,
     setCurrentKey, setActiveTab, itemNames, itemIcons,
   } = useStore();
-  const projectLoaded = !!configHandle || !!projectName;
+  const projectLoaded = !!projectName;
   const [filter, setFilter] = useState('');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -115,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewRecipe }) => {
                 <span className={styles.chevron}><ChevronIcon open={isOpen} /></span>
                 {cat === 'uncategorized'
                   ? <span className={styles.uncatLabel}>uncategorized</span>
-                  : <Badge variant={catVariant(cat)}>{cat}</Badge>
+                  : <ColorBadge catKey={cat} />
                 }
                 <span className={styles.groupCount}>{keys.length}</span>
                 {dirtyInCat > 0 && <span className={styles.groupDirty} />}

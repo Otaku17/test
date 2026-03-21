@@ -24,7 +24,7 @@ export const NewRecipeModal: React.FC<NewRecipeModalProps> = ({ open, onClose })
         return [...extra].sort();
       })();
 
-  // Exclude "all" from category picker
+  // Exclude the "all" catch-all from the category picker
   const catOptions = (config.categories || [])
     .map((c) => Object.keys(c)[0])
     .filter((k) => k !== 'all');
@@ -54,7 +54,7 @@ export const NewRecipeModal: React.FC<NewRecipeModalProps> = ({ open, onClose })
   return (
     <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={styles.modal}>
-        <h3>➕ {t(lang, 'nr_title')}</h3>
+        <h3>{t(lang, 'nr_title')}</h3>
         <p className={styles.desc}>{t(lang, 'nr_desc')}</p>
 
         <FormGroup label={t(lang, 'nr_item')} className={styles.field}>
@@ -66,7 +66,7 @@ export const NewRecipeModal: React.FC<NewRecipeModalProps> = ({ open, onClose })
         {/* Duplicate warning */}
         {alreadyExists && (
           <div className={styles.errorBanner}>
-            ⚠ A recipe for <strong>{itemNames[item] ?? item}</strong> already exists
+            A recipe for <strong>{itemNames[item] ?? item}</strong> already exists
           </div>
         )}
 

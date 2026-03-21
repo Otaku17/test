@@ -2,29 +2,18 @@ import type { Lang } from '../types';
 
 type Translations = Record<string, string>;
 
+// ── English ───────────────────────────────────────────────────────────────────
+
 const EN: Translations = {
+  // Nav / general
   open_project:    'Open project',
   save_all:        'Save all',
   new_recipe:      'New recipe',
   recipes:         'Recipes',
-  manage_cats:     'Manage categories',
-  recipe_tab:      'Recipe',
-  categories_tab:  'Categories',
-  empty_open_title:'Open a project',
-  empty_open_desc: 'Click <strong>Open project</strong> and select the root folder containing the <code>.studio</code> file.',
+  // Empty states
   empty_sel_title: 'Select a recipe',
   empty_sel_desc:  'Choose a recipe on the left or create a new one.',
-  cat_desc:        'The <strong>Text ID</strong> corresponds to a line in <code>Data/Text/Dialogs/140000.csv</code>. Adding a category auto-saves to JSON + CSV.',
-  th_key:          'Key',
-  th_tid:          'Text ID',
-  th_name:         'Name (CSV)',
-  th_act:          'Actions',
-  cat_key_ph:      'category_key',
-  cat_name_ph:     'Display name',
-  add:             'Add',
-  auto_save:       '→ auto-saves JSON + CSV',
-  copy:            'Copy',
-  compat:          'Requires Chrome / Edge (File System API)',
+  // New recipe modal
   nr_title:        'New recipe',
   nr_desc:         "Select the result item. The recipe key will be the item's dbSymbol.",
   nr_item:         'Result item (dbSymbol)',
@@ -33,7 +22,9 @@ const EN: Translations = {
   key_prev:        'Recipe key:',
   cancel:          'Cancel',
   create:          'Create & Save',
+  // Sidebar
   filter_ph:       'Filter...',
+  // Recipe editor
   ingredients:     'Ingredients',
   add_ingr:        'Add',
   unlock_cond:     'Unlock condition',
@@ -42,49 +33,25 @@ const EN: Translations = {
   cat_lbl:         'Category',
   save:            'Save',
   delete:          'Delete',
-  unsaved:         '● Unsaved',
-  saved_lbl:       'Saved',
-  unsaved_lbl:     'Unsaved changes',
-  no_items:        'No items loaded',
-  qty_col:         'Qty',
-  confirm_del_rec: 'Delete recipe "{k}"?',
-  confirm_del_cat: 'Delete category "{k}"?',
+  // Condition values
   unlocked:        'Unlocked',
   locked:          'Locked',
-  choose:          'choose',
   no_cond:         'No conditions yet.',
-  no_proj:         'No project',
-  no_proj_loaded:  'No project loaded',
-  loading:         'Loading...',
-  project_loaded:  'project loaded',
-  warnings:        'Warnings:',
-  value_lbl:       'Value',
   id_lbl:          'ID',
+  value_lbl:       'Value',
+  // Category confirm
+  confirm_del_cat: 'Delete category "{k}"?',
 };
+
+// ── French ────────────────────────────────────────────────────────────────────
 
 const FR: Translations = {
   open_project:    'Ouvrir projet',
   save_all:        'Tout sauvegarder',
   new_recipe:      'Nouvelle recette',
   recipes:         'Recettes',
-  manage_cats:     'Gérer les catégories',
-  recipe_tab:      'Recette',
-  categories_tab:  'Catégories',
-  empty_open_title:'Ouvrez un projet',
-  empty_open_desc: 'Cliquez sur <strong>📂 Ouvrir projet</strong> et sélectionnez le dossier racine contenant le fichier <code>.studio</code>.',
   empty_sel_title: 'Sélectionnez une recette',
   empty_sel_desc:  'Choisissez une recette à gauche ou créez-en une nouvelle.',
-  cat_desc:        'Le <strong>Text ID</strong> correspond à une ligne dans <code>Data/Text/Dialogs/140000.csv</code>. L\'ajout d\'une catégorie sauvegarde JSON + CSV automatiquement.',
-  th_key:          'Clé',
-  th_tid:          'Text ID',
-  th_name:         'Nom (CSV)',
-  th_act:          'Actions',
-  cat_key_ph:      'clé_catégorie',
-  cat_name_ph:     'Nom affiché',
-  add:             'Ajouter',
-  auto_save:       '→ sauvegarde auto JSON + CSV',
-  copy:            'Copier',
-  compat:          'Nécessite Chrome / Edge (File System API)',
   nr_title:        'Nouvelle recette',
   nr_desc:         "Sélectionnez l'item résultat. La clé sera le dbSymbol de l'item.",
   nr_item:         'Item résultat (dbSymbol)',
@@ -102,34 +69,22 @@ const FR: Translations = {
   cat_lbl:         'Catégorie',
   save:            'Sauvegarder',
   delete:          'Supprimer',
-  unsaved:         '● Non sauvegardé',
-  saved_lbl:       'Sauvegardé',
-  unsaved_lbl:     'Modifications non sauvegardées',
-  no_items:        'Aucun item chargé',
-  qty_col:         'Qté',
-  confirm_del_rec: 'Supprimer la recette "{k}" ?',
-  confirm_del_cat: 'Supprimer la catégorie "{k}" ?',
   unlocked:        'Déverrouillé',
   locked:          'Verrouillé',
-  choose:          'choisir',
   no_cond:         'Aucune condition.',
-  no_proj:         'Aucun projet',
-  no_proj_loaded:  'Aucun projet chargé',
-  loading:         'Chargement...',
-  project_loaded:  'projet chargé',
-  warnings:        'Avertissements :',
-  value_lbl:       'Valeur',
   id_lbl:          'ID',
+  value_lbl:       'Valeur',
+  confirm_del_cat: 'Supprimer la catégorie "{k}" ?',
 };
+
+// ── Lookup ────────────────────────────────────────────────────────────────────
 
 const MAP: Record<Lang, Translations> = { en: EN, fr: FR };
 
 export function t(lang: Lang, key: string, vars?: Record<string, string>): string {
   let s = MAP[lang][key] ?? MAP.en[key] ?? key;
   if (vars) {
-    for (const [k, v] of Object.entries(vars)) {
-      s = s.replace(`{${k}}`, v);
-    }
+    for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, v);
   }
   return s;
 }

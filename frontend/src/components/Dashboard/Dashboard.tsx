@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../../store';
 import appIconUrl from '../../assets/icon.png';
+import { getProjectTimestamp, formatTimestamp, removeProject } from '../../utils/projectTimestamps';
 import styles from './Dashboard.module.css';
 
 interface RecentProject {
@@ -16,15 +17,6 @@ function goCall(method: string, ...args: unknown[]): Promise<any> {
   return fn(...args);
 }
 
-function timeAgo(ts: string): string {
-  const n = parseInt(ts);
-  if (isNaN(n) || n === 0) return '';
-  const diff = Math.floor((Date.now() - n) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
 
 const TrashIcon = () => (
   <svg
@@ -72,10 +64,11 @@ const PlusIcon = () => (
 const GRID_SIZE = 4;
 
 export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
-  const { openProject, openProjectPath } = useStore();
+  const { openProject, openProjectPath, applyRawProject } = useStore();
   const [recents, setRecents] = useState<RecentProject[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<Record<string, boolean>>({});
+  const [version, setVersion] = useState<string>('');
 
   const refreshRecents = async () => {
     const data: RecentProject[] | null = await goCall('GetRecentProjects');
@@ -83,24 +76,23 @@ export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
     return data;
   };
 
-  // Au montage : charger les recents puis vérifier les paths invalides côté Go
   useEffect(() => {
     const init = async () => {
       await refreshRecents();
       const invalid: string[] | null = await goCall('CheckRecentPaths');
       if (invalid && invalid.length > 0) {
         const errMap: Record<string, boolean> = {};
-        invalid.forEach((p) => {
-          errMap[p] = true;
-        });
+        invalid.forEach((p) => { errMap[p] = true; });
         setError(errMap);
       }
+      const v: string | null = await goCall('GetVersion');
+      if (v) setVersion('v' + v);
     };
     init();
   }, []);
 
   const handleOpen = async (path: string) => {
-    if (error[path]) return; // path invalide connu — ne rien faire
+    if (error[path]) return; // known invalid path — do nothing
     setLoading(path);
     try {
       await openProjectPath(path);
@@ -115,6 +107,7 @@ export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
   const handleRemove = async (path: string, ev: React.MouseEvent) => {
     ev.stopPropagation();
     await goCall('RemoveRecentProject', path);
+    removeProject(path);
     setRecents((r) => r.filter((p) => p.path !== path));
     setError((e) => {
       const n = { ...e };
@@ -127,18 +120,21 @@ export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
     ev.stopPropagation();
     setLoading(path);
     try {
-      const data = await goCall('RedefineRecentProject', path);
-      if (data) {
-        await refreshRecents();
+      // Go ouvre le picker, remplace l'entrée dans les recents ET charge le projet
+      const raw = await goCall('RedefineRecentProject', path);
+      if (raw && raw.projectName) {
         setError((e) => {
           const n = { ...e };
           delete n[path];
           return n;
         });
+        // On applique directement les données déjà chargées par Go
+        applyRawProject(raw);
+        await refreshRecents();
         onOpen?.();
       }
     } catch {
-      // annulé
+      // annulé par l'utilisateur
     } finally {
       setLoading(null);
     }
@@ -159,8 +155,9 @@ export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
 
   return (
     <div className={styles.root}>
+      {version && <span className={styles.versionBadge}>{version}</span>}
       <div className={styles.page}>
-        {/* Hero */}
+        {/* Hero section */}
         <div className={styles.hero}>
           <img src={appIconUrl} alt="Crafting Editor" className={styles.logo} />
           <div className={styles.heroText}>
@@ -169,7 +166,7 @@ export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
           </div>
         </div>
 
-        {/* Grille 2×2 */}
+        {/* 2×2 project grid */}
         <div className={styles.section}>
           <span className={styles.sectionLabel}>Recent projects</span>
           <div className={styles.grid}>
@@ -266,16 +263,13 @@ export const Dashboard: React.FC<{ onOpen?: () => void }> = ({ onOpen }) => {
                   <div className={styles.cardFooter}>
                     {hasErr ? (
                       <span className={styles.cardErrMsg}>
-                       
                         Folder not found
                       </span>
-                    ) : (
-                      timeAgo(p.openedAt) && (
-                        <span className={styles.cardAge}>
-                          {timeAgo(p.openedAt)}
-                        </span>
-                      )
-                    )}
+                    ) : (() => {
+                      const ts = getProjectTimestamp(p.path);
+                      const label = ts ? formatTimestamp(ts) : '';
+                      return label ? <span className={styles.cardAge}>{label}</span> : null;
+                    })()}
                   </div>
                 </div>
               );

@@ -8,13 +8,13 @@ import { RecipeEditor } from './components/RecipeEditor/RecipeEditor';
 import { CategoryManager } from './components/CategoryManager/CategoryManager';
 import { JsonViewer } from './components/JsonViewer/JsonViewer';
 import { NewRecipeModal } from './components/Modal/NewRecipeModal';
+import { NewCategoryModal } from './components/Modal/NewCategoryModal';
 import { MissingFilesModal } from './components/Modal/MissingFilesModal';
 import { UpdateBanner } from './components/layout/UpdatePrompt';
 import { ToastContainer } from './components/Toast/Toast';
 import { UnsavedModal } from './components/Modal/UnsavedModal';
 import styles from './App.module.css';
-
-type TabId = 'recipe' | 'cat' | 'json';
+import { TabId } from './types';
 
 export const App: React.FC = () => {
   const {
@@ -30,20 +30,22 @@ export const App: React.FC = () => {
     missingFilesOpen,
     closeMissingFiles,
     loading,
-    addCategory,
+    loadingStep,
     deleteCategory,
   } = useStore();
 
   const [newRecipeOpen, setNewRecipeOpen] = useState(false);
   const [selectedCatKey, setSelectedCatKey] = useState<string | null>(null);
-  const [showAddCat, setShowAddCat] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(false);
+  const [newCatOpen, setNewCatOpen] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(true);
 
   const projectLoaded = !!configHandle || !!projectName;
 
-  // Si le projet est déchargé, revenir au dashboard
+  // Quand un projet se charge, quitter le dashboard automatiquement
+  // Quand il est déchargé, y revenir
   useEffect(() => {
-    if (!projectLoaded) setShowDashboard(false);
+    if (projectLoaded) setShowDashboard(false);
+    else setShowDashboard(true);
   }, [projectLoaded]);
 
   useEffect(() => {
@@ -58,21 +60,20 @@ export const App: React.FC = () => {
       }
       if (e.key === 'Escape') {
         setNewRecipeOpen(false);
-        setShowAddCat(false);
+        setNewCatOpen(false);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [projectLoaded]);
 
-  const handleAddCategory = async (key: string, id: number) => {
-    await addCategory(key, id, '');
-    setSelectedCatKey(key);
-  };
-
   const handleDeleteCategory = (key: string, idx: number) => {
     deleteCategory(idx);
     setSelectedCatKey(null);
+  };
+
+  const handleRenameCategory = (newKey: string) => {
+    setSelectedCatKey(newKey);
   };
 
   return (
@@ -104,14 +105,8 @@ export const App: React.FC = () => {
         {projectLoaded && !showDashboard && activeTab === 'cat' && (
           <CatSidebar
             selectedKey={selectedCatKey}
-            onSelect={(key) => {
-              setSelectedCatKey(key);
-              setShowAddCat(false);
-            }}
-            onAdd={() => {
-              setShowAddCat(true);
-              setSelectedCatKey(null);
-            }}
+            onSelect={(key) => setSelectedCatKey(key)}
+            onAdd={() => setNewCatOpen(true)}
           />
         )}
 
@@ -124,11 +119,13 @@ export const App: React.FC = () => {
               {activeTab === 'recipe' && <RecipeEditor />}
               {activeTab === 'cat' && (
                 <CategoryManager
-                  selectedKey={showAddCat ? null : selectedCatKey}
-                  onAddCategory={handleAddCategory}
+                  selectedKey={selectedCatKey}
                   onDeleteCategory={handleDeleteCategory}
-                  showAddForm={showAddCat}
-                  onCloseAddForm={() => setShowAddCat(false)}
+                  onRenameCategory={handleRenameCategory}
+                  showAddForm={false}
+                  onCloseAddForm={function (): void {
+                    throw new Error('Function not implemented.');
+                  }}
                 />
               )}
               {activeTab === 'json' && <JsonViewer />}
@@ -137,11 +134,21 @@ export const App: React.FC = () => {
         </main>
       </div>
 
-      {loading && (
+      {loading && loadingStep && (
         <div className={styles.loadingOverlay}>
           <div className={styles.loadingCard}>
-            <div className={styles.loadingSpinner} />
-            <span className={styles.loadingText}>Loading project...</span>
+            <div className={styles.loadingProgressBar}>
+              <div
+                className={styles.loadingProgressFill}
+                style={{
+                  width: `${(loadingStep.current / loadingStep.total) * 100}%`,
+                }}
+              />
+            </div>
+            <span className={styles.loadingText}>{loadingStep.label}</span>
+            <span className={styles.loadingCounter}>
+              {loadingStep.current} / {loadingStep.total}
+            </span>
           </div>
         </div>
       )}
@@ -152,6 +159,11 @@ export const App: React.FC = () => {
       <NewRecipeModal
         open={newRecipeOpen}
         onClose={() => setNewRecipeOpen(false)}
+      />
+      <NewCategoryModal
+        open={newCatOpen}
+        onClose={() => setNewCatOpen(false)}
+        onCreated={(key) => setSelectedCatKey(key)}
       />
       <MissingFilesModal
         open={missingFilesOpen}

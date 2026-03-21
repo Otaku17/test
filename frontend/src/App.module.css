@@ -186,22 +186,27 @@
     transform: scale(1);
   }
 }
-.loadingSpinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border-default);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+.loadingProgressBar {
+  width: 220px;
+  height: 6px;
+  background: var(--border-default);
+  border-radius: 99px;
+  overflow: hidden;
 }
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.loadingProgressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  transition: width 0.25s ease;
 }
 .loadingText {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: -0.01em;
+}
+.loadingCounter {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--text-secondary));
+  font-variant-numeric: tabular-nums;
 }

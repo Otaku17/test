@@ -1,13 +1,15 @@
 /**
  * fileSystem.ts
- * Couche filesystem pour Wails.
- * Utilise window['go']['main']['App'] injecté par le runtime Wails
- * (évite les problèmes de chemins d'import avec wailsjs/).
+ *
+ * Filesystem layer for the Wails desktop build.
+ * All Go bindings are called through window['go']['main']['App'],
+ * injected by the Wails runtime at startup.
  */
 
-import type { CraftingConfig, GameItem } from '../types';
+import type { CraftingConfig, GameItem, GameQuest } from '../types';
 
-// Helpers d'appel Go — Wails injecte window['go'] au démarrage
+// ── Go bridge ────────────────────────────────────────────────────────────────
+
 function goCall(method: string, ...args: unknown[]): Promise<any> {
   const fn = (window as any)?.go?.main?.App?.[method];
   if (typeof fn !== 'function') {
@@ -16,7 +18,10 @@ function goCall(method: string, ...args: unknown[]): Promise<any> {
   return fn(...args);
 }
 
+// ── Raw types returned by Go ─────────────────────────────────────────────────
+
 interface WailsProjectData {
+  projectPath:    string;
   projectName:    string;
   projectIconUrl: string;
   configJSON:     string;
@@ -29,7 +34,17 @@ interface WailsProjectData {
   warnings:       string[];
 }
 
+/** Returned by Go App.GetQuests() — loaded separately after OpenProject. */
+interface WailsQuestData {
+  quests:       GameQuest[];
+  questCsvText: string;
+  hasQuestCsv:  boolean;
+}
+
+// ── Exported types ───────────────────────────────────────────────────────────
+
 export interface ProjectFiles {
+  projectPath:    string;
   projectName:    string;
   projectIconUrl: string | null;
   config:         CraftingConfig;
@@ -43,44 +58,126 @@ export interface ProjectFiles {
   warnings:       string[];
 }
 
+export interface QuestFiles {
+  quests:     GameQuest[];
+  questNames: Record<string, string>;
+}
+
+// ── Project loading ───────────────────────────────────────────────────────────
+
+/** Opens a native directory picker and loads the selected project. */
 export async function loadProjectFiles(): Promise<ProjectFiles | null> {
   const raw: WailsProjectData = await goCall('OpenProject');
-  console.log('[desktop] OpenProject raw:', raw);
-  // Wails retourne {} quand Go retourne nil — vérifier projectName
-  if (!raw || !raw.projectName) {
-    console.log('[desktop] OpenProject: annulé ou vide');
-    return null;
-  }
+  if (!raw || !raw.projectName) return null;
   return parseWailsData(raw);
 }
 
+/** Reopens the last project without a dialog. */
 export async function reopenLastProject(): Promise<ProjectFiles | null> {
   const raw: WailsProjectData = await goCall('ReopenLastProject');
   if (!raw || !raw.projectName) return null;
   return parseWailsData(raw);
 }
 
+/** Opens a project from a known path (used by the dashboard). */
 export async function openProjectByPath(path: string): Promise<ProjectFiles | null> {
   const raw: WailsProjectData = await goCall('OpenProjectPath', path);
   if (!raw || !raw.projectName) return null;
   return parseWailsData(raw);
 }
 
-export async function getLastProjectPath(): Promise<string> {
-  return goCall('GetLastProjectPath');
+/** Parses a raw WailsProjectData payload already returned by Go (e.g. RedefineRecentProject). */
+export function parseRawProjectData(raw: WailsProjectData): ProjectFiles | null {
+  if (!raw || !raw.projectName) return null;
+  return parseWailsData(raw);
+}
+
+
+/**
+ * Loads quest data separately after the project is open.
+ * Calls Go App.GetQuests() which reads Data/Studio/quests/*.json
+ * and Data/Text/Dialogs/100045.csv from the already-open project.
+ * Fails silently if the method is not yet implemented on the Go side.
+ */
+export async function loadQuestFiles(): Promise<QuestFiles> {
+  try {
+    const raw: WailsQuestData = await goCall('GetQuests');
+    if (!raw) return { quests: [], questNames: {} };
+    return parseQuestData(raw);
+  } catch {
+    return { quests: [], questNames: {} };
+  }
+}
+
+// ── Save ─────────────────────────────────────────────────────────────────────
+
+export async function writeJsonToHandle(_handle: null, obj: unknown): Promise<void> {
+  await goCall('SaveConfig', JSON.stringify(obj, null, 2));
+}
+
+export async function writeCsvToHandle(_handle: null, lines: string[]): Promise<void> {
+  await goCall('SaveCsv', lines.join('\n'));
+}
+
+// ── CSV utilities ─────────────────────────────────────────────────────────────
+
+/**
+ * Parses raw CSV text into indexed lines and a line-index → text map.
+ * Strips surrounding quotes from each cell.
+ */
+export function parseCsvText(text: string): { texts: Record<number, string>; lines: string[] } {
+  const lines = text.split('\n');
+  const texts: Record<number, string> = {};
+  lines.forEach((line, i) => {
+    const c = line.trim().replace(/^"|"$/g, '');
+    if (c) texts[i] = c;
+  });
+  return { texts, lines };
+}
+
+// ── Internal parsers ──────────────────────────────────────────────────────────
+
+function parseCsvLineRaw(line: string): string[] {
+  const result: string[] = [];
+  let cur = '', inQuote = false;
+  for (const ch of line) {
+    if (ch === '"') { inQuote = !inQuote; }
+    else if (ch === ',' && !inQuote) { result.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseQuestData(raw: WailsQuestData): QuestFiles {
+  const quests: GameQuest[] = raw.quests ?? [];
+  const questNames: Record<string, string> = {};
+
+  if (raw.hasQuestCsv && raw.questCsvText) {
+    const lines = raw.questCsvText.split('\n');
+    for (const q of quests) {
+      // CSV is offset by 1: line at index (id + 1) holds the quest name
+      const line = lines[q.id + 1] ?? '';
+      const cols = parseCsvLineRaw(line);
+      const name = cols[0]?.trim().replace(/^"|"$/g, '');
+      questNames[q.dbSymbol] = name || q.dbSymbol;
+    }
+  } else {
+    // No CSV available — fall back to dbSymbol
+    for (const q of quests) questNames[q.dbSymbol] = q.dbSymbol;
+  }
+
+  return { quests, questNames };
 }
 
 function parseWailsData(raw: WailsProjectData): ProjectFiles {
-  console.log('[desktop] parseWailsData:', raw.projectName, '— items:', raw.items?.length, '— hasConfig:', raw.hasConfig);
-
   let config: CraftingConfig = { categories: [], data: {} };
   if (raw.configJSON) {
     try {
       const parsed = JSON.parse(raw.configJSON);
       config = { categories: parsed.categories ?? [], data: parsed.data ?? {} };
-      console.log('[desktop] config parsed — recipes:', Object.keys(config.data).length);
     } catch (e) {
-      console.error('[desktop] config JSON parse error:', e);
+      console.error('[fileSystem] config JSON parse error:', e);
     }
   }
 
@@ -93,6 +190,7 @@ function parseWailsData(raw: WailsProjectData): ProjectFiles {
   }
 
   return {
+    projectPath:    raw.projectPath ?? '',
     projectName:    raw.projectName,
     projectIconUrl: raw.projectIconUrl || null,
     config,
@@ -106,31 +204,3 @@ function parseWailsData(raw: WailsProjectData): ProjectFiles {
     warnings:       raw.warnings ?? [],
   };
 }
-
-// ─── Save ─────────────────────────────────────────────────────────────────────
-
-export async function writeJsonToHandle(_handle: null, obj: unknown): Promise<void> {
-  await goCall('SaveConfig', JSON.stringify(obj, null, 2));
-}
-
-export async function writeCsvToHandle(_handle: null, lines: string[]): Promise<void> {
-  await goCall('SaveCsv', lines.join('\n'));
-}
-
-// ─── Utilitaires ──────────────────────────────────────────────────────────────
-
-export function parseCsvText(text: string): { texts: Record<number, string>; lines: string[] } {
-  const lines = text.split('\n');
-  const texts: Record<number, string> = {};
-  lines.forEach((line, i) => {
-    const c = line.trim().replace(/^"|"$/g, '');
-    if (c) texts[i] = c;
-  });
-  return { texts, lines };
-}
-
-export function getCsvText(texts: Record<number, string>, id: number): string {
-  return texts[id + 1] !== undefined ? texts[id + 1] : `[${id}]`;
-}
-
-export const hasFileSystemAPI = () => true;

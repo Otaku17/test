@@ -1,7 +1,14 @@
-.group { display: flex; flex-direction: column; gap: 5px; }
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
 .label {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
-  color: var(--text-secondary); text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
 }
 
 /* ── Input */
@@ -15,9 +22,14 @@
   font-size: 13px;
   color: var(--text-primary);
   width: 100%;
-  transition: border-color var(--t-base), background-color var(--t-base), box-shadow var(--t-base);
+  transition:
+    border-color var(--t-base),
+    background-color var(--t-base),
+    box-shadow var(--t-base);
 }
-.input::placeholder { color: var(--text-muted); }
+.input::placeholder {
+  color: var(--text-muted);
+}
 .input:hover {
   border-color: var(--border-strong);
   background-color: var(--bg-overlay);
@@ -42,15 +54,22 @@
   min-width: 0;
   user-select: none;
 }
-/* Full-width variant — used inside FormGroup or standalone */
-.customSelectFull { width: 100%; }
-.customSelectDisabled { opacity: 0.4; pointer-events: none; }
+.customSelectFull {
+  width: 100%;
+}
+.customSelectDisabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
 
-/* Trigger button — looks like the input */
+/* Trigger button */
 .selectTrigger {
   width: 100%;
   min-width: 0;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -60,7 +79,10 @@
   color: var(--text-primary);
   cursor: pointer;
   text-align: left;
-  transition: border-color var(--t-base), background-color var(--t-base), box-shadow var(--t-base);
+  transition:
+    border-color var(--t-base),
+    background-color var(--t-base),
+    box-shadow var(--t-base);
 }
 .selectTrigger:hover {
   border-color: var(--border-strong);
@@ -73,7 +95,28 @@
 }
 
 .selectValue {
-  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.selectValueName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.selectValueSub {
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .selectChevron {
   flex-shrink: 0;
@@ -93,47 +136,67 @@
 
 /* ── Dropdown panel */
 .selectDropdown {
+  box-sizing: border-box;
   position: absolute;
   top: calc(100% + 4px);
-  left: 0; right: 0;
-  z-index: 500;
+  left: 0;
+  right: 0;
+  z-index: 9999;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 4px;
-  max-height: 220px;
+  max-height: 280px;
   overflow-y: auto;
+  overflow-x: hidden;
   animation: dropIn 120ms ease;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 @keyframes dropIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Scrollbar inside dropdown */
-.selectDropdown::-webkit-scrollbar { width: 4px; }
-.selectDropdown::-webkit-scrollbar-track { background: transparent; }
-.selectDropdown::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--radius-md); }
+.selectDropdown::-webkit-scrollbar {
+  width: 4px;
+}
+.selectDropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+.selectDropdown::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-md);
+}
 
 /* ── Option */
 .selectOption {
+  box-sizing: border-box;
   width: 100%;
-  display: flex; align-items: center; gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 7px 10px;
-  border: none; background: transparent;
+  border: none;
+  background: transparent;
   border-radius: var(--radius-md);
-  font-family: var(--font-ui); font-size: 13px;
+  font-family: var(--font-ui);
+  font-size: 13px;
   color: var(--text-secondary);
   cursor: pointer;
   text-align: left;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
-
-/* Item icon — 32×32 source rendered at 64×64 with pixelated scaling */
 .optionIcon {
   width: 32px;
   height: 32px;
@@ -166,9 +229,6 @@
 
 /* ── SearchSelect ─────────────────────────────────────────────────────────── */
 
-/* Reuses .customSelect, .customSelectOpen, .customSelectDisabled */
-
-/* Search input inside the dropdown */
 .searchBox {
   display: flex;
   align-items: center;
@@ -191,9 +251,10 @@
   font-size: 12.5px;
   color: var(--text-primary);
 }
-.searchBoxInput::placeholder { color: var(--text-muted); }
+.searchBoxInput::placeholder {
+  color: var(--text-muted);
+}
 
-/* Count badge inside search box */
 .searchCount {
   font-size: 10px;
   font-weight: 700;
@@ -206,7 +267,6 @@
   flex-shrink: 0;
 }
 
-/* Match highlight inside option label */
 .optionMatch {
   background: var(--accent-subtle);
   color: var(--accent);
@@ -214,7 +274,6 @@
   font-weight: 700;
 }
 
-/* No results */
 .noResults {
   padding: 12px 10px;
   font-size: 12px;
@@ -222,7 +281,6 @@
   text-align: center;
 }
 
-/* Option avec nom + dbSymbol */
 .optionLabel {
   display: flex;
   flex-direction: column;
@@ -245,4 +303,17 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.selectOptionActive .optionName {
+  color: var(--accent);
+}
+.selectOptionActive .optionSub {
+  color: var(--accent);
+  opacity: 0.7;
+}
+.selectOptionHighlighted .optionName {
+  color: var(--text-primary);
+}
+.selectOptionHighlighted .optionSub {
+  color: var(--text-muted);
 }

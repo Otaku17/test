@@ -1,65 +1,260 @@
 .root {
   flex: 1; overflow-y: auto;
-  padding: 28px 32px;
+  padding: 24px 28px;
   display: flex; flex-direction: column; gap: 20px;
-  max-width: 1100px; width: 100%; margin: 0 auto; align-self: stretch;
+  max-width: 960px; width: 100%; margin: 0 auto; align-self: stretch;
 }
 
-/* ── Empty / no selection */
+/* ── Empty state ───────────────────────────────────────────────────────────── */
 .empty {
   flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 10px; color: var(--text-muted); font-size: 13px;
+  align-items: center; justify-content: center; gap: 10px;
+  color: var(--text-muted);
 }
-.emptyIcon { font-size: 28px; opacity: 0.4; }
-
-/* ── Header */
-.head {
-  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-  padding-bottom: 18px; border-bottom: 1px solid var(--border-subtle);
+.emptyIcon {
+  width: 44px; height: 44px; border-radius: var(--radius-lg);
+  background: var(--bg-elevated); border: 1px solid var(--border-default);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-disabled); margin-bottom: 4px;
 }
-.headSub { font-size: 12px; color: var(--text-muted); }
+.emptyTitle { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+.emptyDesc  { font-size: 12px; color: var(--text-muted); max-width: 280px; text-align: center; line-height: 1.6; }
 
-/* ── Field */
-.field { display: flex; flex-direction: column; gap: 6px; }
-.fieldLabel { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+/* ── Add panel ─────────────────────────────────────────────────────────────── */
+.addPanel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-muted);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+  flex-shrink: 0;
+}
+.addPanelHead { display: flex; align-items: center; justify-content: space-between; }
+.addPanelTitle { font-size: 12px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; }
+.addPanelClose {
+  width: 24px; height: 24px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); border: 1px solid transparent; background: transparent;
+  cursor: pointer; transition: all var(--t-base);
+}
+.addPanelClose:hover { background: var(--red-subtle); color: var(--red); border-color: var(--red-muted); }
 
-/* ── Translations */
-.translations { display: flex; flex-direction: column; gap: 12px; }
-.transHead { display: flex; align-items: center; gap: 10px; }
-.transTitle { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-secondary); }
-.nocsv { font-size: 12px; color: var(--yellow); }
+.addRow { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.addField { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+.addLabel { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
+.addBtnRow { padding-bottom: 1px; flex-shrink: 0; }
 
-.langList { display: flex; flex-direction: column; gap: 6px; }
-.langRow { display: flex; align-items: center; gap: 10px; }
-.langTag {
-  font-size: 10px; font-weight: 700; font-family: var(--font-mono);
-  width: 40px; text-align: center; padding: 3px 0;
-  border-radius: var(--radius-sm);
+.addPreview {
+  font-size: 11px; color: var(--text-secondary);
+  padding: 6px 10px; background: var(--bg-overlay);
+  border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+}
+.addPreview code { font-family: var(--font-mono); color: var(--accent); }
+
+/* ── Editor ────────────────────────────────────────────────────────────────── */
+.editor { display: flex; flex-direction: column; gap: 20px; }
+
+.editorHead {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle);
+}
+.editorHeadLeft  { display: flex; align-items: center; gap: 10px; }
+.editorHeadRight { display: flex; align-items: center; gap: 8px; }
+
+.unsavedBadge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: var(--radius-xs); background: var(--yellow-subtle);
+  color: var(--yellow); border: 1px solid var(--yellow-muted);
+  font-family: var(--font-mono); letter-spacing: 0.04em;
+}
+
+/* ── Meta row ──────────────────────────────────────────────────────────────── */
+.metaRow { display: flex; gap: 12px; flex-wrap: wrap; }
+.metaCard {
+  flex: 1; min-width: 180px;
+  background: var(--bg-elevated); border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.metaCardHead {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text-muted);
+}
+.keyDisplay { padding: 5px 0; display: flex; align-items: center; gap: 8px; }
+.keyInput {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: border-color var(--t-base);
+  box-sizing: border-box;
+}
+.keyInput:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.keyInput:hover:not(:focus) {
+  border-color: var(--border-default);
+  background: var(--bg-overlay);
+}
+.metaHint {
+  font-size: 11px; color: var(--text-disabled); line-height: 1.5; margin: 0;
+}
+.metaHint code { font-family: var(--font-mono); color: var(--text-muted); }
+
+/* ── Translations section ───────────────────────────────────────────────────── */
+.translationsSection {
+  background: var(--bg-elevated); border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg); padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.sectionHead {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sectionHeadLeft { display: flex; align-items: center; gap: 8px; }
+.sectionTitle {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text-secondary);
+}
+.sectionCount {
+  font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);
+  background: var(--bg-overlay); border: 1px solid var(--border-default);
+  padding: 1px 7px; border-radius: var(--radius-xs);
+}
+.noCsvWarning {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--yellow);
+}
+
+/* ── Language grid ─────────────────────────────────────────────────────────── */
+.langGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.langCard {
   background: var(--bg-surface); border: 1px solid var(--border-default);
-  color: var(--text-muted); flex-shrink: 0;
-  transition: all var(--t-base);
-}
-.langTagDirty {
-  background: var(--yellow-subtle); border-color: var(--yellow-muted); color: var(--yellow);
-}
-.langInput {
-  flex: 1; height: 32px; padding: 0 10px;
-  background: var(--bg-surface); border: 1px solid var(--border-default);
-  border-radius: var(--radius-md); color: var(--text-primary);
-  font-family: var(--font-ui); font-size: 12.5px;
+  border-radius: var(--radius-md); padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 7px;
   transition: border-color var(--t-base);
 }
-.langInput:focus { border-color: var(--accent); }
-.langInputDirty { border-color: var(--yellow-muted) !important; background: var(--yellow-subtle); }
+.langCard:focus-within { border-color: var(--accent); }
+.langCardDirty { border-color: var(--yellow-muted) !important; background: var(--yellow-subtle); }
 
-/* ── Add form */
-.addPanel {
-  display: flex; flex-direction: column; gap: 14px;
-  max-width: 400px; margin: 40px auto 0;
-  background: var(--bg-elevated); border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg); padding: 24px;
+.langCardHead {
+  display: flex; align-items: center; gap: 6px;
 }
-.addTitle { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0; }
-.addRow { display: flex; gap: 8px; }
-.addActions { display: flex; gap: 8px; justify-content: flex-end; }
+.langCode {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  background: var(--bg-overlay); border: 1px solid var(--border-strong);
+  color: var(--text-secondary); padding: 2px 6px; border-radius: var(--radius-xs);
+  letter-spacing: 0.08em; flex-shrink: 0;
+}
+.langCardDirty .langCode {
+  background: var(--bg-raised); border-color: var(--yellow-muted); color: var(--yellow);
+}
+.langName {
+  font-size: 11px; color: var(--text-muted); flex: 1;
+}
+.dirtyPip {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--yellow); flex-shrink: 0;
+}
+
+.langInput {
+  height: 30px; padding: 0 9px; width: 100%;
+  background: var(--bg-overlay); border: 1px solid transparent;
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-family: var(--font-ui); font-size: 12px;
+  transition: border-color var(--t-base), background var(--t-base);
+}
+.langInput:focus { outline: none; border-color: var(--accent); background: var(--bg-raised); }
+.langCardDirty .langInput { background: transparent; }
+
+/* ── No CSV block ──────────────────────────────────────────────────────────── */
+.noCsvBlock {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-secondary);
+  padding: 14px 16px;
+  background: var(--bg-overlay); border: 1px solid var(--yellow-muted);
+  border-radius: var(--radius-md); line-height: 1.5;
+}
+.noCsvBlock svg { color: var(--yellow); flex-shrink: 0; }
+.noCsvBlock code { font-family: var(--font-mono); color: var(--text-primary); }
+
+/* ── Color picker ──────────────────────────────────────────────────────────── */
+.colorSection {
+  background: var(--bg-elevated); border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.colorSectionHead {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text-muted);
+}
+.colorSwatches {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.colorSwatch {
+  width: 28px; height: 28px; border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  cursor: pointer; transition: transform var(--t-fast), border-color var(--t-fast);
+  flex-shrink: 0;
+}
+.colorSwatch:hover { transform: scale(1.12); }
+.colorSwatchActive { border-color: var(--text-primary) !important; transform: scale(1.12); }
+
+/* ── Color picker ──────────────────────────────────────────────────────────── */
+.colorSection {
+  background: var(--bg-elevated); border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.colorSectionHead {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text-muted);
+}
+.colorRow {
+  display: flex; align-items: center; gap: 10px;
+}
+.colorPickerWrap {
+  width: 34px; height: 34px; border-radius: var(--radius-md);
+  border: 2px solid var(--border-default);
+  cursor: pointer; flex-shrink: 0; position: relative;
+  transition: transform var(--t-fast), border-color var(--t-fast);
+  overflow: hidden;
+}
+.colorPickerWrap:hover { transform: scale(1.08); border-color: var(--text-muted); }
+.nativePicker {
+  position: absolute; inset: 0;
+  width: 200%; height: 200%;
+  opacity: 0; cursor: pointer;
+  border: none; padding: 0;
+}
+.hexInput {
+  width: 96px; flex-shrink: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px; color: var(--text-primary);
+  transition: border-color var(--t-base);
+  box-sizing: border-box;
+}
+.hexInput:focus { border-color: var(--accent); outline: none; }
+.colorPreviewBadge {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: var(--radius-xs);
+  white-space: nowrap;
+}

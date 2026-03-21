@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStore } from '../../store';
 import { t } from '../../utils/i18n';
-import type { Condition, OperatorCondition, SimpleCondition } from '../../types';
+import type { Condition, OperatorCondition, SimpleCondition, QuestCondition } from '../../types';
 import { Button } from '../layout/Button';
 import { Select, SearchSelect, Input } from '../layout/Form';
 import styles from './ConditionEditor.module.css';
@@ -22,7 +22,6 @@ interface ConditionEditorProps { recipeKey: string; }
 export const ConditionEditor: React.FC<ConditionEditorProps> = ({ recipeKey }) => {
   const { config, lang } = useStore();
   const cond = config.data[recipeKey]?.unlock_condition;
-
   return (
     <div className={styles.root}>
       {cond && <CondNode recipeKey={recipeKey} cond={cond} path="root" lang={lang} />}
@@ -38,10 +37,12 @@ const CondNode: React.FC<NodeProps> = ({ recipeKey, cond, path, lang }) => {
   return <SimpleNode recipeKey={recipeKey} cond={cond as SimpleCondition} path={path} lang={lang} />;
 };
 
+// ── Simple condition ─────────────────────────────────────────────────────────
+
 const SimpleNode: React.FC<{ recipeKey: string; cond: SimpleCondition; path: string; lang: string }> = ({
   recipeKey, cond, path, lang,
 }) => {
-  const { updateConditionByPath, config, itemNames, itemIcons } = useStore();
+  const { updateConditionByPath, config, itemNames, itemIcons, quests, questNames } = useStore();
   const upd = (field: string, value: unknown) => updateConditionByPath(recipeKey, path, field, value);
   const recipeKeys = Object.keys(config.data);
 
@@ -51,7 +52,7 @@ const SimpleNode: React.FC<{ recipeKey: string; cond: SimpleCondition; path: str
         <span className={`${styles.condTag} ${styles[`ct_${cond.type}`]}`}>{cond.type}</span>
 
         {cond.type === 'manual' && (
-          <Select compact fullWidth={false} style={{ width: 120 }} value={String(cond.value)}
+          <Select compact fullWidth={false} style={{ width: 130 }} value={String(cond.value)}
             onChange={(e) => upd('value', e.target.value === 'true')}>
             <option value="true">{t(lang as any, 'unlocked')}</option>
             <option value="false">{t(lang as any, 'locked')}</option>
@@ -81,52 +82,115 @@ const SimpleNode: React.FC<{ recipeKey: string; cond: SimpleCondition; path: str
             {recipeKeys.map((k) => <option key={k} value={k}>{k}</option>)}
           </SearchSelect>
         )}
+        {cond.type === 'quest' && (
+          <SearchSelect compact fullWidth={false} style={{ width: 220 }} value={(cond as QuestCondition).key}
+            onChange={(e) => upd('key', e.target.value)}
+            icons={{}} names={questNames} placeholder="Search quests…" showTriggerIcon={false}>
+            {quests.map((q) => <option key={q.dbSymbol} value={q.dbSymbol}>{q.dbSymbol}</option>)}
+          </SearchSelect>
+        )}
       </div>
     </div>
   );
 };
 
+// ── Operator node (AND / OR / NOT) ───────────────────────────────────────────
+
 const OpNode: React.FC<{ recipeKey: string; cond: OperatorCondition; path: string; lang: string }> = ({
   recipeKey, cond, path, lang,
 }) => {
-  const { updateConditionByPath, addChildCondition, removeChildCondition } = useStore();
+  const { updateConditionByPath, addChildCondition, removeChildCondition, setNotInnerCondition } = useStore();
+  const isNot = cond.operator === 'not';
+
+  const innerType = (() => {
+    if (!isNot) return null;
+    const inner = cond.condition as any;
+    if (inner?.operator) return inner.operator; // 'and' | 'or' | 'not'
+    return inner?.type ?? 'manual';
+  })();
 
   return (
-    <div className={styles.opNode}>
+    <div className={`${styles.opNode} ${isNot ? styles.opNodeNot : ''}`}>
+      {/* Head */}
       <div className={styles.opHead}>
         <span className={`${styles.condTag} ${styles.ct_operator}`}>OPERATOR</span>
-        <Select compact fullWidth={false} style={{ width: 'auto' }} value={cond.operator}
-          onChange={(e) => updateConditionByPath(recipeKey, path, 'operator', e.target.value)}>
+
+        {/* AND / OR / NOT switcher */}
+        <Select
+          compact fullWidth={false} style={{ width: 'auto' }}
+          value={cond.operator}
+          onChange={(e) => updateConditionByPath(recipeKey, path, 'operator', e.target.value)}
+        >
           <option value="and">AND</option>
           <option value="or">OR</option>
+          <option value="not">NOT</option>
         </Select>
-        <div className={styles.opAddBtns}>
-          {(['manual', 'switch', 'variable', 'recipe'] as const).map((type) => (
-            <Button key={type} variant="ghost" size="sm"
-              onClick={() => addChildCondition(recipeKey, path, type)}>
-              <PlusIcon /> {type}
-            </Button>
-          ))}
-        </div>
-      </div>
 
-      <div className={styles.opChildren}>
-        {(cond.conditions || []).length === 0 ? (
-          <span className={styles.empty}>{t(lang as any, 'no_cond')}</span>
-        ) : (
-          (cond.conditions || []).map((child, i) => (
-            <div key={i} className={styles.childRow}>
-              <div style={{ flex: 1 }}>
-                <CondNode recipeKey={recipeKey} cond={child} path={`${path}.${i}`} lang={lang} />
-              </div>
-              <button className={styles.removeBtn}
-                onClick={() => removeChildCondition(recipeKey, path, i)}>
-                <XIcon />
-              </button>
-            </div>
-          ))
+        {/* Inner-type select for NOT */}
+        {isNot && (
+          <>
+            <span className={styles.notArrow}>→</span>
+            <Select
+              compact fullWidth={false} style={{ width: 'auto' }}
+              value={innerType ?? 'manual'}
+              onChange={(e) => setNotInnerCondition(recipeKey, path, e.target.value)}
+            >
+              {(['manual', 'switch', 'variable', 'recipe', 'quest', 'operator'] as const).map((x) => (
+                <option key={x} value={x}>{x}</option>
+              ))}
+            </Select>
+          </>
+        )}
+
+        {/* Add-child buttons (AND / OR only) */}
+        {!isNot && (
+          <div className={styles.opAddBtns}>
+            <span className={styles.addLabel}>+ add</span>
+            {(['manual', 'switch', 'variable', 'recipe', 'quest', 'operator'] as const).map((type) => (
+              <Button key={type} variant="ghost" size="sm"
+                onClick={() => addChildCondition(recipeKey, path, type)}>
+                <PlusIcon /> {type}
+              </Button>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Children */}
+      {isNot ? (
+        /* NOT: single inner condition */
+        <div className={styles.notBody}>
+          {cond.condition && (
+            <CondNode recipeKey={recipeKey} cond={cond.condition} path={`${path}.not`} lang={lang} />
+          )}
+        </div>
+      ) : (
+        /* AND / OR: list of children */
+        <div className={styles.opChildren}>
+          {(cond.conditions || []).length === 0 ? (
+            <span className={styles.empty}>{t(lang as any, 'no_cond')}</span>
+          ) : (
+            (cond.conditions || []).map((child, i) => (
+              <div key={i} className={styles.childRow}>
+                {i > 0 && (
+                  <div className={styles.childConnector}>
+                    <span className={styles.connectorLabel}>{cond.operator.toUpperCase()}</span>
+                  </div>
+                )}
+                <div className={styles.childInner}>
+                  <div style={{ flex: 1 }}>
+                    <CondNode recipeKey={recipeKey} cond={child} path={`${path}.${i}`} lang={lang} />
+                  </div>
+                  <button className={styles.removeBtn}
+                    onClick={() => removeChildCondition(recipeKey, path, i)}>
+                    <XIcon />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,11 +1,10 @@
 /**
- * appMode.ts — version desktop (Wails)
- * Toujours 'desktop', pas de détection nécessaire.
+ * appMode.ts — desktop build (Wails)
+ * Always returns 'desktop'. No runtime detection needed.
  */
 export type AppMode = 'desktop' | 'pwa' | 'web';
-export const getAppMode      = (): AppMode => 'desktop';
-export const isDesktop       = () => true;
-export const isPWA           = () => false;
-export const isWeb           = () => false;
-export const getModeBadge    = () => 'APP';
-export const getModeBadgeClass = (): 'app' | 'pwa' | 'web' => 'app';
+
+export const getAppMode = (): AppMode => 'desktop';
+export const isDesktop  = () => true;
+export const isPWA      = () => false;
+export const isWeb      = () => false;

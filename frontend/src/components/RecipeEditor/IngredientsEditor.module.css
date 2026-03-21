@@ -1,73 +1,79 @@
-/* ── Grid ───────────────────────────────────────────────────── */
+/* ── Root ───────────────────────────────────────────────────── */
 .root {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-
-/* ── Slot base ───────────────────────────────────────────────── */
-.slot {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
-  background: var(--bg-elevated);
   display: flex;
   flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Row base ────────────────────────────────────────────────── */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   transition: border-color var(--t-fast);
   position: relative;
 }
 
-/* ── Slot vide ───────────────────────────────────────────────── */
-.slotEmpty {
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-height: 80px;
+/* ── Row vide ────────────────────────────────────────────────── */
+.rowEmpty {
   cursor: pointer;
   border-style: dashed;
-  color: var(--text-muted);
   background: var(--bg-surface);
 }
-.slotEmpty:hover {
+.rowEmpty:hover {
   border-color: var(--accent);
   background: var(--accent-subtle);
+}
+.rowEmpty:hover .emptyLabel {
   color: var(--accent);
 }
-.addLabel {
-  font-size: 11px;
+.rowGhost {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+.emptyIconPlaceholder {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.emptyLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
   font-weight: 500;
+  color: var(--text-muted);
+  flex: 1;
 }
 
-/* ── Slot invalide ───────────────────────────────────────────── */
-.slotInvalid {
+/* ── Row invalide ────────────────────────────────────────────── */
+.rowInvalid {
   border-color: var(--red-muted) !important;
   background: var(--red-subtle);
 }
-.slotInvalid .slotHeader {
-  background: var(--red-subtle);
-}
-/*.slotFilled { }*/
-.slotFilled:hover {
+
+/* ── Row remplie ─────────────────────────────────────────────── */
+.rowFilled:hover {
   border-color: var(--border-strong);
 }
 
-/* Header : numéro + icône item côte à côte */
-.slotHeader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px 7px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--bg-surface);
-  position: relative;
-}
-.slotNum {
-  font-size: 13px;
+/* ── Numéro ──────────────────────────────────────────────────── */
+.rowNum {
+  font-size: 11px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-muted);
   letter-spacing: 0.06em;
   flex-shrink: 0;
+  width: 22px;
 }
+
+/* ── Icône item ──────────────────────────────────────────────── */
 .itemIcon {
   width: 32px;
   height: 32px;
@@ -83,91 +89,253 @@
   border: 1px solid var(--border-default);
   flex-shrink: 0;
 }
-.itemName {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+
+/* ── Item trigger (bouton qui ouvre le dropdown) ─────────────── */
+.itemTriggerWrap {
   flex: 1;
   min-width: 0;
+  position: relative;
 }
-
-/* Corps : select + qty/remove */
-.slotBody {
-  padding: 8px 10px 10px;
+.itemTrigger {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: var(--bg-elevated);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
-.itemSelect {
-  width: 100%;
-}
-
-.qtyRow {
-  display: grid;
-  grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 6px;
-}
-.qtyLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  padding-right: 2px;
-}
-.qtyInput {
-  background: var(--bg-overlay);
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px 5px 10px;
+  background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  padding: 4px 6px;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--t-base),
+    background-color var(--t-base),
+    box-shadow var(--t-base);
+}
+.itemTrigger:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-overlay);
+}
+.itemTriggerOpen {
+  border-color: var(--accent) !important;
+  background-color: var(--bg-surface) !important;
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+.itemTriggerInvalid {
+  border-color: var(--red-muted) !important;
+}
+.itemTriggerLabel {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itemTriggerChevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: transform var(--t-base);
+}
+.itemTriggerOpen .itemTriggerChevron {
+  transform: rotate(180deg);
+}
+
+/* ── Dropdown ────────────────────────────────────────────────── */
+.dropdown {
+  box-sizing: border-box;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  animation: dropIn 120ms ease;
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.dropdown::-webkit-scrollbar { width: 4px; }
+.dropdown::-webkit-scrollbar-track { background: transparent; }
+.dropdown::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--radius-md); }
+
+.dropdownSearch {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  outline: none;
+  margin-bottom: 4px;
+}
+.dropdownSearch::placeholder { color: var(--text-muted); }
+
+.dropdownList { display: flex; flex-direction: column; }
+.dropdownOption {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.dropdownOption:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+.dropdownOptionSelected {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 600;
+}
+.dropdownOptionSelected:hover {
+  background: var(--accent-muted);
+}
+.dropdownOptionIcon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.dropdownEmpty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Stepper quantité ────────────────────────────────────────── */
+.stepper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.stepperInvalid {
+  border-color: var(--red-muted);
+}
+.stepperBtn {
+  width: 26px;
+  height: 26px;
+  background: var(--bg-overlay);
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--t-fast), color var(--t-fast);
+  flex-shrink: 0;
+}
+.stepperBtn:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+.stepperVal {
+  width: 30px;
+  height: 26px;
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border-default);
+  border-right: 1px solid var(--border-default);
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
-  text-align: center;
-  transition: border-color var(--t-base);
-  min-width: 0;
-  width: 100%;
-}
-.qtyInput:focus {
-  border-color: var(--accent);
-  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-/* Bouton supprimer — coin haut-droit absolu */
+/* ── Bouton supprimer ────────────────────────────────────────── */
 .removeBtn {
-  position: absolute;
-  top: 6px;
-  right: 7px;
   width: 22px;
   height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-xs);
-  background: var(--bg-overlay);
+  background: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border-default);
+  border: 1px solid transparent;
   cursor: pointer;
   opacity: 0;
+  flex-shrink: 0;
   transition:
     opacity var(--t-fast),
     background var(--t-fast),
     color var(--t-fast),
     border-color var(--t-fast);
 }
-.slot:hover .removeBtn {
+.row:hover .removeBtn {
   opacity: 1;
 }
 .removeBtn:hover {
   background: var(--red-subtle);
   color: var(--red);
   border-color: var(--red-muted);
+}
+
+/* ── Option label (nom + dbSymbol) ───────────────────────────── */
+.dropdownOptionLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.dropdownOptionName {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dropdownOptionSub {
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dropdownOptionSelected .dropdownOptionName {
+  color: var(--accent);
+}
+.dropdownOptionSelected .dropdownOptionSub {
+  color: var(--accent);
+  opacity: 0.7;
 }
